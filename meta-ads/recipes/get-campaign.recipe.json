@@ -1,0 +1,19 @@
+{
+  "id": "agent/meta-ads/get-campaign",
+  "layer": "agent",
+  "owner": "meta-ads",
+  "title": "Get a Meta Ads campaign",
+  "tags": ["meta-ads", "campaign", "details", "ads"],
+  "phrases": [
+    "meta ads get campaign",
+    "facebook ads get campaign",
+    "campaign details",
+    "campaign info",
+    "show campaign details"
+  ],
+  "inputMode": "structured",
+  "requiredContext": [],
+  "outputMode": "text",
+  "fallbackPolicy": "worker_optional",
+  "handler": "./get-campaign.js"
+}

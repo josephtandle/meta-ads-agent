@@ -1,0 +1,13 @@
+{
+  "id": "agent/meta-ads/list-experiments",
+  "layer": "agent",
+  "owner": "meta-ads",
+  "title": "List Meta Ads A/B experiments",
+  "tags": ["meta-ads", "experiments", "a-b-test", "split-test"],
+  "phrases": ["list meta ads experiments", "show facebook split tests", "find meta ad studies", "view instagram a b tests", "show campaign experiments"],
+  "inputMode": "structured",
+  "requiredContext": [],
+  "outputMode": "text",
+  "fallbackPolicy": "worker_optional",
+  "handler": "./list-experiments.js"
+}

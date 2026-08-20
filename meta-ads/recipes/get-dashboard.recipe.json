@@ -1,0 +1,20 @@
+{
+  "id": "agent/meta-ads/get-dashboard",
+  "layer": "agent",
+  "owner": "meta-ads",
+  "title": "Get the Meta Ads dashboard",
+  "tags": ["meta-ads", "dashboard", "account", "insights"],
+  "phrases": [
+    "meta ads dashboard",
+    "facebook ads dashboard",
+    "ad account dashboard",
+    "meta ads account dashboard",
+    "how are my ads doing",
+    "account performance overview"
+  ],
+  "inputMode": "structured",
+  "requiredContext": [],
+  "outputMode": "text",
+  "fallbackPolicy": "worker_optional",
+  "handler": "./get-dashboard.js"
+}

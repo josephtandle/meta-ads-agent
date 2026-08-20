@@ -1,0 +1,21 @@
+{
+  "name": "meta-ads-agent",
+  "version": "1.0.0",
+  "description": "Meta Ads agent - manages Facebook and Instagram advertising campaigns",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "campaigns": "node src/index.js campaigns list",
+    "insights": "node src/index.js insights",
+    "dashboard": "node src/index.js dashboard",
+    "doctor": "node src/index.js doctor",
+    "sync": "node src/index.js sync",
+    "draft": "node src/index.js draft-campaign"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5"
+  },
+  "keywords": ["meta", "facebook", "instagram", "ads", "campaigns", "marketing"],
+  "author": "All Sorted",
+  "license": "MIT"
+}

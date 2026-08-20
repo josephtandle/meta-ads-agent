@@ -1,0 +1,19 @@
+{
+  "id": "agent/meta-ads/list-adsets",
+  "layer": "agent",
+  "owner": "meta-ads",
+  "title": "List Meta Ads ad sets",
+  "tags": ["meta-ads", "adsets", "ad-sets", "list"],
+  "phrases": [
+    "meta ads list ad sets",
+    "facebook ads list ad sets",
+    "ad sets",
+    "list adsets",
+    "show ad sets"
+  ],
+  "inputMode": "structured",
+  "requiredContext": [],
+  "outputMode": "text",
+  "fallbackPolicy": "worker_optional",
+  "handler": "./list-adsets.js"
+}

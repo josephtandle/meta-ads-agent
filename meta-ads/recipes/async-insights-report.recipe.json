@@ -1,0 +1,13 @@
+{
+  "id": "agent/meta-ads/async-insights-report",
+  "layer": "agent",
+  "owner": "meta-ads",
+  "title": "Create or check a Meta Ads async insights report",
+  "tags": ["meta-ads", "insights", "reporting", "async"],
+  "phrases": ["create async meta ads report", "run facebook ads async insights", "check meta report status", "download async ads insights", "meta ads report run"],
+  "inputMode": "structured",
+  "requiredContext": [],
+  "outputMode": "text",
+  "fallbackPolicy": "worker_optional",
+  "handler": "./async-insights-report.js"
+}

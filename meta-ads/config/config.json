@@ -1,0 +1,48 @@
+{
+  "apiVersion": "v21.0",
+  "baseUrl": "https://graph.facebook.com",
+  "requiredEnvVars": [
+    "META_ADS_ACCESS_TOKEN",
+    "META_ADS_ACCOUNT_ID",
+    "META_ADS_APP_ID",
+    "META_ADS_APP_SECRET"
+  ],
+  "optionalEnvVars": [
+    "META_ADS_WRITES_ENABLED",
+    "META_ADS_MAX_DAILY_BUDGET_CENTS",
+    "META_ADS_AUDIT_LOG_PATH"
+  ],
+  "defaultCurrency": "USD",
+  "defaultTimeRange": "last_30d",
+  "optimizationGoals": [
+    "LINK_CLICKS",
+    "IMPRESSIONS",
+    "REACH",
+    "CONVERSIONS",
+    "LEAD_GENERATION",
+    "APP_INSTALLS",
+    "VIDEO_VIEWS",
+    "MESSAGES"
+  ],
+  "bidStrategies": [
+    "LOWEST_COST_WITHOUT_CAP",
+    "LOWEST_COST_WITH_BID_CAP",
+    "COST_CAP",
+    "MINIMUM_ROAS"
+  ],
+  "adPlacements": {
+    "facebook": ["feed", "stories", "reels", "marketplace", "right_column", "video_feeds"],
+    "instagram": ["feed", "stories", "reels", "explore", "shop"],
+    "audience_network": ["native", "banner", "interstitial", "rewarded_video"],
+    "messenger": ["inbox", "stories", "sponsored_messages"]
+  },
+  "reportingMetrics": [
+    "impressions", "reach", "frequency",
+    "clicks", "ctr", "cpc", "cpm",
+    "spend", "conversions", "cost_per_result",
+    "roas", "purchase_roas",
+    "video_views", "video_avg_time_watched_actions",
+    "actions", "action_values"
+  ],
+  "cacheTtlMinutes": 15
+}

@@ -1,0 +1,21 @@
+{
+  "id": "agent/meta-ads/status",
+  "layer": "agent",
+  "owner": "meta-ads",
+  "title": "Check advertising configuration status",
+  "tags": ["meta-ads", "advertising", "status", "configuration", "credentials"],
+  "phrases": [
+    "is meta ads configured",
+    "check meta ads status",
+    "meta ads configuration check",
+    "is my ad account connected",
+    "can I pull campaign numbers yet",
+    "check my advertising credentials",
+    "am I ready to run paid campaigns"
+  ],
+  "inputMode": "structured",
+  "requiredContext": [],
+  "outputMode": "text",
+  "fallbackPolicy": "worker_optional",
+  "handler": "./status.js"
+}

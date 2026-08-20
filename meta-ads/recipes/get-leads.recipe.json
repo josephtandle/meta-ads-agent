@@ -1,0 +1,16 @@
+{
+  "id": "agent/meta-ads/get-leads",
+  "layer": "agent",
+  "owner": "meta-ads",
+  "title": "Retrieve Meta lead form submissions",
+  "tags": ["meta-ads", "leads", "lead-forms", "pii"],
+  "phrases": ["get meta leads", "retrieve facebook lead submissions", "download instagram instant form leads", "view lead form responses", "get a meta lead by id"],
+  "inputMode": "structured",
+  "requiredContext": [],
+  "outputMode": "text",
+  "fallbackPolicy": "worker_optional",
+  "safety": {
+    "rule": "Lead PII is saved only under agents/meta-ads/data/lead-exports and is never included in audit records."
+  },
+  "handler": "./get-leads.js"
+}

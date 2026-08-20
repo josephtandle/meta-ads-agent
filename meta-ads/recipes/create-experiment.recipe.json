@@ -1,0 +1,17 @@
+{
+  "id": "agent/meta-ads/create-experiment",
+  "layer": "agent",
+  "owner": "meta-ads",
+  "title": "Create a Meta Ads A/B experiment",
+  "tags": ["meta-ads", "experiments", "a-b-test", "split-test"],
+  "phrases": ["create meta ads experiment", "start facebook split test", "create campaign a b test", "set up instagram experiment", "test meta ads campaigns"],
+  "inputMode": "structured",
+  "requiredContext": [],
+  "outputMode": "text",
+  "fallbackPolicy": "worker_optional",
+  "safety": {
+    "destructive": true,
+    "rule": "Requires META_ADS_WRITES_ENABLED=true. Use dryRun before creating a live experiment."
+  },
+  "handler": "./create-experiment.js"
+}

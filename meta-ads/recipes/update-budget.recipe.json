@@ -1,0 +1,17 @@
+{
+  "id": "agent/meta-ads/update-budget",
+  "layer": "agent",
+  "owner": "meta-ads",
+  "title": "Update a Meta Ads daily budget",
+  "tags": ["meta-ads", "budget", "campaign", "adset"],
+  "phrases": ["update meta ads budget", "change facebook ad budget", "set campaign daily budget", "set ad set daily budget", "increase meta ads budget"],
+  "inputMode": "structured",
+  "requiredContext": [],
+  "outputMode": "text",
+  "fallbackPolicy": "worker_optional",
+  "safety": {
+    "destructive": true,
+    "rule": "Requires META_ADS_WRITES_ENABLED=true and respects META_ADS_MAX_DAILY_BUDGET_CENTS."
+  },
+  "handler": "./update-budget.js"
+}

@@ -1,0 +1,19 @@
+{
+  "id": "agent/meta-ads/campaign-insights",
+  "layer": "agent",
+  "owner": "meta-ads",
+  "title": "Get Meta Ads campaign insights",
+  "tags": ["meta-ads", "insights", "campaign", "reporting"],
+  "phrases": [
+    "meta ads campaign insights",
+    "facebook ads campaign insights",
+    "campaign performance",
+    "insights for campaign",
+    "how is this campaign performing"
+  ],
+  "inputMode": "structured",
+  "requiredContext": [],
+  "outputMode": "text",
+  "fallbackPolicy": "worker_optional",
+  "handler": "./campaign-insights.js"
+}

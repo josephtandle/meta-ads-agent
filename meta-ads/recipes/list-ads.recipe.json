@@ -1,0 +1,19 @@
+{
+  "id": "agent/meta-ads/list-ads",
+  "layer": "agent",
+  "owner": "meta-ads",
+  "title": "List Meta Ads ads",
+  "tags": ["meta-ads", "ads", "list", "creative"],
+  "phrases": [
+    "meta ads list ads",
+    "facebook ads list ads",
+    "list ads",
+    "show ads",
+    "which ads are running"
+  ],
+  "inputMode": "structured",
+  "requiredContext": [],
+  "outputMode": "text",
+  "fallbackPolicy": "worker_optional",
+  "handler": "./list-ads.js"
+}

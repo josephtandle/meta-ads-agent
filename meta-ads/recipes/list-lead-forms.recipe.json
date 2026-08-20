@@ -1,0 +1,13 @@
+{
+  "id": "agent/meta-ads/list-lead-forms",
+  "layer": "agent",
+  "owner": "meta-ads",
+  "title": "List Meta lead forms for a Page",
+  "tags": ["meta-ads", "leads", "lead-forms", "pages"],
+  "phrases": ["list meta lead forms", "show facebook instant forms", "find instagram lead forms", "view page lead forms", "show meta ads forms"],
+  "inputMode": "structured",
+  "requiredContext": [],
+  "outputMode": "text",
+  "fallbackPolicy": "worker_optional",
+  "handler": "./list-lead-forms.js"
+}

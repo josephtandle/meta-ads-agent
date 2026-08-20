@@ -1,0 +1,13 @@
+{
+  "id": "agent/meta-ads/search-targeting",
+  "layer": "agent",
+  "owner": "meta-ads",
+  "title": "Search Meta Ads targeting options",
+  "tags": ["meta-ads", "targeting", "interests", "locations", "reach"],
+  "phrases": ["search meta ads interests", "find facebook ad targeting", "search meta targeting locations", "estimate meta ads reach", "look up facebook ad interests"],
+  "inputMode": "structured",
+  "requiredContext": [],
+  "outputMode": "text",
+  "fallbackPolicy": "worker_optional",
+  "handler": "./search-targeting.js"
+}

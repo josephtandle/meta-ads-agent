@@ -1,0 +1,22 @@
+{
+  "id": "agent/meta-ads/list-campaigns",
+  "layer": "agent",
+  "owner": "meta-ads",
+  "title": "List Meta Ads campaigns",
+  "tags": ["meta-ads", "campaigns", "list", "ads"],
+  "phrases": [
+    "list meta ads campaigns",
+    "meta ads list campaigns",
+    "facebook ads list campaigns",
+    "facebook ads campaigns",
+    "meta ads campaigns",
+    "list ad campaigns",
+    "show meta ads campaigns",
+    "show campaigns"
+  ],
+  "inputMode": "structured",
+  "requiredContext": [],
+  "outputMode": "text",
+  "fallbackPolicy": "worker_optional",
+  "handler": "./list-campaigns.js"
+}

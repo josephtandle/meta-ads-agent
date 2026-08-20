@@ -1,0 +1,24 @@
+{
+  "id": "agent/meta-ads/activate-campaign",
+  "layer": "agent",
+  "owner": "meta-ads",
+  "title": "Activate a Meta Ads campaign",
+  "tags": ["meta-ads", "campaign", "activate", "ads"],
+  "phrases": [
+    "activate this meta ads campaign",
+    "meta ads activate campaign",
+    "facebook ads activate campaign",
+    "activate ad campaign",
+    "resume campaign"
+  ],
+  "inputMode": "structured",
+  "requiredContext": [],
+  "outputMode": "text",
+  "fallbackPolicy": "worker_optional",
+  "actions": ["activate live campaign"],
+  "safety": {
+    "destructive": true,
+    "rule": "Require the exact current-campaign confirmation returned by the handler before activation."
+  },
+  "handler": "./activate-campaign.js"
+}

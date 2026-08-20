@@ -1,0 +1,13 @@
+{
+  "id": "agent/meta-ads/list-rules",
+  "layer": "agent",
+  "owner": "meta-ads",
+  "title": "List Meta Ads automated rules",
+  "tags": ["meta-ads", "rules", "automation", "guardrails"],
+  "phrases": ["list meta ads rules", "show facebook automated rules", "view instagram ad rules", "find budget automation rules", "show meta ads guardrails"],
+  "inputMode": "structured",
+  "requiredContext": [],
+  "outputMode": "text",
+  "fallbackPolicy": "worker_optional",
+  "handler": "./list-rules.js"
+}

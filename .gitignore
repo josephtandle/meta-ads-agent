@@ -1,4 +1,0 @@
-.env
-module/meta-ads/data/*.json
-module/meta-ads/data/*.jsonl
-node_modules/

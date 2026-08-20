@@ -1,0 +1,13 @@
+{
+  "id": "agent/meta-ads/upload-ad-image",
+  "layer": "agent",
+  "owner": "meta-ads",
+  "title": "Upload a Meta Ads image",
+  "tags": ["meta-ads", "image", "creative", "upload"],
+  "phrases": ["upload meta ads image", "upload facebook ad image", "add ad creative image", "upload image for meta campaign", "send image to facebook ads"],
+  "inputMode": "structured",
+  "requiredContext": [],
+  "outputMode": "text",
+  "fallbackPolicy": "worker_optional",
+  "handler": "./upload-ad-image.js"
+}

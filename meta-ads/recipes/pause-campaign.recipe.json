@@ -1,0 +1,27 @@
+{
+  "id": "agent/meta-ads/pause-campaign",
+  "layer": "agent",
+  "owner": "meta-ads",
+  "title": "Pause a Meta Ads campaign",
+  "tags": ["meta-ads", "campaign", "pause", "ads"],
+  "phrases": [
+    "pause this meta ads campaign",
+    "meta ads pause campaign",
+    "facebook ads pause campaign",
+    "pause ad campaign",
+    "stop campaign",
+    "pause my ads",
+    "stop spending on that campaign",
+    "turn off this ad campaign"
+  ],
+  "inputMode": "structured",
+  "requiredContext": [],
+  "outputMode": "text",
+  "fallbackPolicy": "worker_optional",
+  "actions": ["pause live campaign"],
+  "safety": {
+    "destructive": true,
+    "rule": "Require the exact current-campaign confirmation returned by the handler before pausing."
+  },
+  "handler": "./pause-campaign.js"
+}

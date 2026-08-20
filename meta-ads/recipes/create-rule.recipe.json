@@ -1,0 +1,17 @@
+{
+  "id": "agent/meta-ads/create-rule",
+  "layer": "agent",
+  "owner": "meta-ads",
+  "title": "Create a Meta Ads automated rule",
+  "tags": ["meta-ads", "rules", "automation", "guardrails"],
+  "phrases": ["create meta ads rule", "add facebook automated rule", "create cpa pause guardrail", "set instagram budget automation", "automate meta ads rule"],
+  "inputMode": "structured",
+  "requiredContext": [],
+  "outputMode": "text",
+  "fallbackPolicy": "worker_optional",
+  "safety": {
+    "destructive": true,
+    "rule": "Requires META_ADS_WRITES_ENABLED=true and exact confirm: CONFIRM RULE <name> unless dryRun is true."
+  },
+  "handler": "./create-rule.js"
+}
