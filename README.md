@@ -2,7 +2,7 @@
 
 Run real Meta (Facebook and Instagram) ad campaigns through a conversation with Claude Code, with safety rails a professional would insist on.
 
-Built by Joe Che for the "Supercharge Your Meta Ads with Claude Code" course at Masterminds HQ. If you are here from the course: star this repo so you can find it again, then follow the install prompt in `meta-ads/prompts/`.
+Built by Joe Che for the "Supercharge Your Meta Ads with Claude Code" course at Masterminds HQ. If you are here from the course: star this repo so you can find it again, then follow the setup guide in `meta-ads/docs/SETUP.md`.
 
 ## What it does
 
@@ -26,13 +26,13 @@ Everything is created PAUSED. The agent never generates or refreshes tokens, and
 
 ## Install
 
-The agent ships as an All Sorted module. Open `meta-ads/prompts/unified-install-prompt.md` and paste it into Claude Code, or copy the `meta-ads/module/meta-ads` folder and run:
+Clone this repository, then from the `meta-ads` folder run `npm install` and:
 
 ```
 node src/index.js doctor
 ```
 
-`doctor` tells you exactly what is configured and what is missing. Credential setup is documented step by step in `meta-ads/module/meta-ads/docs/SETUP.md`.
+`doctor` tells you exactly what is configured and what is missing. Credential setup is documented step by step in `meta-ads/docs/SETUP.md`. Course participants also get a packaged one-paste installer through All Sorted.
 
 ## Requirements
 
