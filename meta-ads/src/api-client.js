@@ -267,6 +267,21 @@ async function searchLocations({ q, limit = 25 } = {}) {
   return apiCall("/search", "GET", null, { q: String(q).trim(), type: "adgeolocation", limit: Number(limit) });
 }
 
+async function searchAdLibrary({ searchTerms, adReachedCountries, adType = "ALL", adActiveStatus = "ACTIVE", limit = 25 } = {}) {
+  if (!searchTerms || !String(searchTerms).trim()) throw new Error("Ad Library search terms are required");
+  if (!Array.isArray(adReachedCountries) || !adReachedCountries.length) {
+    throw new Error("Ad Library reached countries are required");
+  }
+  return apiCall("/ads_archive", "GET", null, {
+    search_terms: String(searchTerms).trim(),
+    ad_reached_countries: adReachedCountries,
+    ad_type: adType,
+    ad_active_status: adActiveStatus,
+    limit: Number(limit),
+    fields: "id,page_name,ad_creative_bodies,ad_creative_link_titles,ad_delivery_start_time,publisher_platforms",
+  });
+}
+
 async function getReachEstimate({ targetingSpec } = {}) {
   if (!targetingSpec || typeof targetingSpec !== "object") throw new Error("targetingSpec must be an object");
   return apiCall(`/${ACCOUNT_ID}/reachestimate`, "GET", null, { targeting_spec: targetingSpec });
@@ -472,7 +487,7 @@ module.exports = {
   listAds, createAdCreative, createAd,
   uploadAdImage, listAdImages,
   updateBudget,
-  searchTargeting, searchLocations, getReachEstimate,
+  searchTargeting, searchLocations, searchAdLibrary, getReachEstimate,
   listExperiments, createExperiment, getExperiment, getExperimentResults,
   listRules, getRule, createRule, updateRule, deleteRule,
   LEADFORM_LIST, LEAD_LIST, listLeadForms, getFormLeads, getLead,

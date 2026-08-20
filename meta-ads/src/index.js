@@ -31,6 +31,7 @@
  *   node src/index.js targeting search <query> [type]  - Search targeting options
  *   node src/index.js targeting locations <query>      - Search locations
  *   node src/index.js targeting reach '<json>'         - Estimate reach
+ *   node src/index.js ad-library search <terms> [countries] - Search active competitor ads
  *   node src/index.js audiences list                   - List custom audiences
  *   node src/index.js audiences create '<json>'        - Create custom audience
  *   node src/index.js audiences lookalike '<json>'     - Create lookalike audience
@@ -340,6 +341,17 @@ async function main() {
         }
         break;
 
+      case "ad-library":
+        if (sub !== "search" || !args[2] || !args[2].trim()) {
+          console.error("Usage: ad-library search <terms> [countries]");
+          process.exit(1);
+        }
+        pp(await api.searchAdLibrary({
+          searchTerms: args[2],
+          adReachedCountries: (args[3] || "US").split(",").map((country) => country.trim()).filter(Boolean),
+        }));
+        break;
+
       case "audiences":
         switch (sub) {
           case "list":
@@ -471,7 +483,7 @@ async function main() {
 
       default:
         console.error(`Unknown command: ${command}`);
-        console.log("Commands: dashboard, campaigns, adsets, ads, creatives, images, insights, targeting, audiences, pixels, experiments, rules, leads, account, sync, doctor, draft-campaign");
+        console.log("Commands: dashboard, campaigns, adsets, ads, creatives, images, insights, targeting, ad-library, audiences, pixels, experiments, rules, leads, account, sync, doctor, draft-campaign");
         process.exit(1);
     }
   } catch (err) {

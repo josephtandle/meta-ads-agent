@@ -1,0 +1,13 @@
+{
+  "id": "agent/meta-ads/search-ad-library",
+  "layer": "agent",
+  "owner": "meta-ads",
+  "title": "Search the Meta Ad Library",
+  "tags": ["meta-ads", "ad-library", "competitor-research", "creative-research"],
+  "phrases": ["search meta ad library", "find facebook competitor ads", "what ads are my competitors running", "show me competitor ads", "research instagram ad hooks", "find active ads by keyword"],
+  "inputMode": "structured",
+  "requiredContext": [],
+  "outputMode": "text",
+  "fallbackPolicy": "worker_optional",
+  "handler": "./search-ad-library.js"
+}
