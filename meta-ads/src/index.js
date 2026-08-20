@@ -10,13 +10,13 @@
  *   node src/index.js campaigns list                  - List all campaigns
  *   node src/index.js campaigns get <id>              - Get campaign details
  *   node src/index.js campaigns create '<json>'       - Create campaign (PAUSED)
- *   node src/index.js campaigns pause <id>            - Pause campaign
- *   node src/index.js campaigns activate <id>         - Activate campaign
+ *   node src/index.js campaigns pause <id> [--confirm "CONFIRM PAUSE <id>"] - Pause campaign
+ *   node src/index.js campaigns activate <id> [--confirm "CONFIRM ACTIVATE <id>"] - Activate campaign
  *   node src/index.js campaigns update <id> '<json>'  - Update campaign
- *   node src/index.js campaigns budget <id> <cents>   - Update campaign daily budget
+ *   node src/index.js campaigns budget <id> <cents> [--confirm "CONFIRM BUDGET <id>"] - Update campaign daily budget
  *   node src/index.js adsets list [campaignId]         - List ad sets
  *   node src/index.js adsets create '<json>'           - Create ad set
- *   node src/index.js adsets budget <id> <cents>       - Update ad set daily budget
+ *   node src/index.js adsets budget <id> <cents> [--confirm "CONFIRM BUDGET <id>"] - Update ad set daily budget
  *   node src/index.js ads list [adsetId]               - List ads
  *   node src/index.js ads create '<json>'              - Create ad
  *   node src/index.js creatives create '<json>'        - Create ad creative
@@ -86,6 +86,15 @@ function requireRuleConfirmation(args, name, action) {
   const confirmation = confirmIndex === -1 ? undefined : args[confirmIndex + 1];
   if (confirmation !== expectedConfirmation) {
     throw new Error(`Rule ${action} requires confirm: ${expectedConfirmation}`);
+  }
+}
+
+function requireSpendConfirmation(args, action, id) {
+  const expectedConfirmation = `CONFIRM ${action} ${id}`;
+  const confirmIndex = args.indexOf("--confirm");
+  const confirmation = confirmIndex === -1 ? undefined : args[confirmIndex + 1];
+  if (confirmation !== expectedConfirmation) {
+    throw new Error(`${action} requires confirm: ${expectedConfirmation}`);
   }
 }
 
@@ -191,11 +200,13 @@ async function main() {
             break;
           case "pause":
             if (!args[2]) { console.error("Usage: campaigns pause <id>"); process.exit(1); }
+            if (!isDryRun) requireSpendConfirmation(args, "PAUSE", args[2]);
             writeGate("campaigns pause");
             pp(await api.pauseCampaign(args[2]));
             break;
           case "activate":
             if (!args[2]) { console.error("Usage: campaigns activate <id>"); process.exit(1); }
+            if (!isDryRun) requireSpendConfirmation(args, "ACTIVATE", args[2]);
             writeGate("campaigns activate");
             pp(await api.activateCampaign(args[2]));
             break;
@@ -210,6 +221,7 @@ async function main() {
             break;
           case "budget":
             if (!args[2] || !args[3]) { console.error("Usage: campaigns budget <id> <cents>"); process.exit(1); }
+            if (!isDryRun) requireSpendConfirmation(args, "BUDGET", args[2]);
             pp(await api.updateBudget(args[2], args[3], { dryRun: false }));
             break;
           default:
@@ -233,6 +245,7 @@ async function main() {
             break;
           case "budget":
             if (!args[2] || !args[3]) { console.error("Usage: adsets budget <id> <cents>"); process.exit(1); }
+            if (!isDryRun) requireSpendConfirmation(args, "BUDGET", args[2]);
             pp(await api.updateBudget(args[2], args[3], { dryRun: false }));
             break;
           default:
@@ -445,7 +458,7 @@ async function main() {
 
       case "doctor":
       case "setup-status":
-        pp(readinessReport());
+        pp(await readinessReport());
         break;
 
       case "draft-campaign": {

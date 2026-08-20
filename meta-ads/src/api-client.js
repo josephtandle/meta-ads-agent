@@ -81,10 +81,11 @@ async function apiCall(endpoint, method = "GET", body = null, params = {}, optio
 
     for (let attempt = 0; attempt <= 3; attempt++) {
       await rateLimiter.waitIfNeeded();
-      const res = await fetch(
-        url.toString(),
-        buildJsonFetchOptions({ method, body }),
-      );
+      const fetchOptions = buildJsonFetchOptions({ method, body });
+      if (options.timeoutMs) {
+        fetchOptions.signal = AbortSignal.timeout(options.timeoutMs);
+      }
+      const res = await fetch(url.toString(), fetchOptions);
       rateLimiter.parseBucHeader(res.headers.get("x-business-use-case-usage"));
 
       let data;
