@@ -24,13 +24,18 @@
 5. For permanent access: create a System User in Business Manager and generate a token there. System user tokens do not expire and are the recommended production setup.
 
 ### Required Permissions / Scopes
+
+Core (request these five for the agent's campaign work):
 - `ads_management` - create, edit, and manage ads
 - `ads_read` - read ad account data and insights
 - `business_management` - manage business settings
 - `pages_read_engagement` - read page data for ad creatives
-- `pages_manage_ads` - create ads linked to pages
-- `leads_retrieval` - access lead form data (if using lead ads)
-- `catalog_management` - product catalog access (if using dynamic ads)
+- `pages_show_list` - list the pages your login can use as an ad identity
+
+Optional (request only if you use these features):
+- `leads_retrieval` - pull lead form results with the leads commands
+- `pages_manage_ads` - manage page-connected ads
+- `catalog_management` - product catalog access, dynamic ads work only
 
 ### Ad Account ID
 - Found in Business Manager under Ad Accounts
