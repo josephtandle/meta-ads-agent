@@ -1,0 +1,14 @@
+{
+  "id": "agent/meta-ads/audit-account",
+  "layer": "agent",
+  "owner": "meta-ads",
+  "title": "Audit a Meta Ads account",
+  "tags": ["meta-ads", "audit", "diagnosis", "media-buying"],
+  "phrases": ["why are my ads not working", "audit my ad account", "audit my meta ads", "facebook ads account audit", "diagnose meta ads performance", "why is my campaign underperforming"],
+  "inputMode": "structured",
+  "requiredContext": [],
+  "outputMode": "text",
+  "fallbackPolicy": "worker_optional",
+  "safety": { "destructive": false, "rule": "Read-only diagnosis. No write gates or account mutations." },
+  "handler": "./audit-account.js"
+}

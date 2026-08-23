@@ -1,0 +1,14 @@
+{
+  "id": "agent/meta-ads/plan-budget",
+  "layer": "agent",
+  "owner": "meta-ads",
+  "title": "Plan a Meta Ads budget",
+  "tags": ["meta-ads", "budget", "media-buying", "strategy"],
+  "phrases": ["how should I split my budget", "plan my meta ads budget", "facebook ads budget plan", "how many ad sets can my budget support", "meta ads learning budget"],
+  "inputMode": "structured",
+  "requiredContext": [],
+  "outputMode": "text",
+  "fallbackPolicy": "worker_optional",
+  "safety": { "destructive": false, "rule": "Pure local budget math and doctrine text. No API calls or write gates." },
+  "handler": "./plan-budget.js"
+}

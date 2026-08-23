@@ -40,6 +40,7 @@
  *   node src/index.js account                          - Account info
  *   node src/index.js sync                             - Sync all data to local cache
  *   node src/index.js doctor                           - Setup/readiness check
+ *   node src/index.js strategy show|init|log "<note>"|context - Manage the local media-buying strategy
  *   node src/index.js draft-campaign '<json>'          - Save offline PAUSED campaign draft
  *   node src/index.js experiments list|create|get|results - Manage A/B experiments
  *   node src/index.js rules list|get|create|update|delete [--confirm "CONFIRM RULE <name>"] - Manage automated rules
@@ -54,6 +55,11 @@ const fs = require("fs");
 const path = require("path");
 
 const CACHE_DIR = path.join(__dirname, "../data");
+const BRAIN_DIR = path.join(__dirname, "../brain");
+const STRATEGY_PATH = path.join(CACHE_DIR, "STRATEGY.md");
+const STRATEGY_TEMPLATE_PATH = path.join(BRAIN_DIR, "STRATEGY-TEMPLATE.md");
+const OFFER_CONTEXT_PATH = path.join(CACHE_DIR, "offer-context-local.md");
+const OFFER_CONTEXT_TEMPLATE_PATH = path.join(BRAIN_DIR, "OFFER-CONTEXT.md");
 
 function ensureCacheDir() {
   fs.mkdirSync(CACHE_DIR, { recursive: true });
@@ -66,6 +72,60 @@ function writeCache(name, data) {
 
 function pp(data) {
   console.log(JSON.stringify(data, null, 2));
+}
+
+function strategyDate() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function updateStrategyStamp(strategy, date) {
+  const stamp = `Last updated: ${date}`;
+  if (/^Last updated:.*$/m.test(strategy)) return strategy.replace(/^Last updated:.*$/m, stamp);
+  return strategy.replace(/^# Strategy Template\n/m, `# Strategy Template\n\n${stamp}\n`);
+}
+
+function appendStrategyLog(strategy, note, date) {
+  const heading = "## Kill and scale log";
+  const headingIndex = strategy.indexOf(heading);
+  if (headingIndex === -1) throw new Error("Strategy file is missing the Kill and scale log section");
+  const nextHeadingIndex = strategy.indexOf("\n## ", headingIndex + heading.length);
+  const insertionPoint = nextHeadingIndex === -1 ? strategy.length : nextHeadingIndex;
+  const entry = `* ${date} [HOLD]: ${note}\n`;
+  return `${strategy.slice(0, insertionPoint).replace(/\n*$/, "\n")}${entry}${strategy.slice(insertionPoint)}`;
+}
+
+function runStrategyCommand(subcommand, args) {
+  switch (subcommand) {
+    case "init":
+      if (fs.existsSync(STRATEGY_PATH)) throw new Error(`Strategy already exists at ${STRATEGY_PATH}. Use strategy show or strategy log.`);
+      ensureCacheDir();
+      fs.copyFileSync(STRATEGY_TEMPLATE_PATH, STRATEGY_PATH);
+      console.log(`Created strategy at ${STRATEGY_PATH}`);
+      return;
+    case "show":
+      if (!fs.existsSync(STRATEGY_PATH)) throw new Error("No local strategy found. Run strategy init first.");
+      console.log(fs.readFileSync(STRATEGY_PATH, "utf8"));
+      return;
+    case "log": {
+      const note = args.join(" ").trim();
+      if (!note) throw new Error("Usage: strategy log \"<note>\"");
+      if (!fs.existsSync(STRATEGY_PATH)) throw new Error("No local strategy found. Run strategy init first.");
+      const date = strategyDate();
+      const strategy = fs.readFileSync(STRATEGY_PATH, "utf8");
+      fs.writeFileSync(STRATEGY_PATH, updateStrategyStamp(appendStrategyLog(strategy, note, date), date));
+      console.log(`Logged strategy note for ${date}.`);
+      return;
+    }
+    case "context":
+      if (fs.existsSync(OFFER_CONTEXT_PATH)) {
+        console.log(fs.readFileSync(OFFER_CONTEXT_PATH, "utf8"));
+      } else {
+        console.log(`${fs.readFileSync(OFFER_CONTEXT_TEMPLATE_PATH, "utf8")}\n\nNote: fill data/offer-context-local.md with the account-specific offer context.`);
+      }
+      return;
+    default:
+      throw new Error("Usage: strategy show|init|log \"<note>\"|context");
+  }
 }
 
 function checkBudget(input, action, usdKeys = []) {
@@ -473,6 +533,10 @@ async function main() {
         pp(await readinessReport());
         break;
 
+      case "strategy":
+        runStrategyCommand(sub, args.slice(2));
+        break;
+
       case "draft-campaign": {
         if (!sub) { console.error("Usage: draft-campaign '<json>'"); process.exit(1); }
         const draft = buildCampaignDraft(JSON.parse(sub));
@@ -483,7 +547,7 @@ async function main() {
 
       default:
         console.error(`Unknown command: ${command}`);
-        console.log("Commands: dashboard, campaigns, adsets, ads, creatives, images, insights, targeting, ad-library, audiences, pixels, experiments, rules, leads, account, sync, doctor, draft-campaign");
+        console.log("Commands: dashboard, campaigns, adsets, ads, creatives, images, insights, targeting, ad-library, audiences, pixels, experiments, rules, leads, account, sync, doctor, strategy, draft-campaign");
         process.exit(1);
     }
   } catch (err) {
