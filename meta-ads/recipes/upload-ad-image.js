@@ -1,5 +1,5 @@
 const api = require("../src/api-client");
-const { readArg, requireTextArg, writeGate } = require("../src/recipe-helpers");
+const { readArg, requireTextArg } = require("../src/recipe-helpers");
 
 module.exports.runRecipe = async function runRecipe(input = {}) {
   const source = requireTextArg(input, ["filePath", "path", "url", "source"], "filePath or url");
@@ -8,7 +8,6 @@ module.exports.runRecipe = async function runRecipe(input = {}) {
     ? { url: source, name }
     : { filePath: source, name };
 
-  writeGate("images upload");
   const result = await api.uploadAdImage(image, readArg(input, "dryRun", false) === true);
   return {
     status: result.response?.dryRun ? "dry_run" : "ok",

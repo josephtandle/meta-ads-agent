@@ -1,49 +1,55 @@
 # Meta Ads Agent Setup
 
-`AGENT_DIR` below means the folder this agent is installed into (for example `~/agents/meta-ads` or wherever your installer placed it).
+`AGENT_DIR` means the folder this agent is installed into. Example paths:
+
+- macOS or Linux: `~/agents/meta-ads`
+- Windows PowerShell: `$env:USERPROFILE\agents\meta-ads`
+
+The agent uses Meta Marketing API v25.0.
 
 ## 1. Create a Meta App
 
 1. Go to https://developers.facebook.com/apps/
-2. Create a new app and choose the use case named "Create and manage ads with Marketing API". Do not pick "Other" and do not create a plain Business-type app; those routes can hide the ads permissions you need later.
-3. Confirm the Marketing API product is attached (the use case above adds it automatically)
+2. Create an app and choose the use case named "Create and manage ads with Marketing API".
+3. Confirm the Marketing API product is attached.
 
 ## 2. Get API Credentials
 
-### Access Token (Long-lived)
-1. In your app dashboard: Tools, then Graph API Explorer
-2. Select your app and the permissions listed below
-3. Generate a User Access Token
-4. Exchange it for a long-lived token (60 days):
-   ```
-   GET /oauth/access_token?grant_type=fb_exchange_token
-     &client_id={APP_ID}
-     &client_secret={APP_SECRET}
-     &fb_exchange_token={SHORT_LIVED_TOKEN}
-   ```
-5. For permanent access: create a System User in Business Manager and generate a token there. System user tokens do not expire and are the recommended production setup.
+Generate an access token in your app dashboard using Graph API Explorer, then exchange it for a long-lived token. For ongoing production use, a system user token from Business Manager is recommended.
 
-### Required Permissions / Scopes
+## Required Permissions
 
-Core (request these five for the agent's campaign work):
-- `ads_management` - create, edit, and manage ads
-- `ads_read` - read ad account data and insights
-- `business_management` - manage business settings
-- `pages_read_engagement` - read page data for ad creatives
-- `pages_show_list` - list the pages your login can use as an ad identity
+Core scopes for campaign work:
 
-Optional (request only if you use these features):
-- `leads_retrieval` - pull lead form results with the leads commands
-- `pages_manage_ads` - manage page-connected ads
-- `catalog_management` - product catalog access, dynamic ads work only
+- `ads_management` for reading and managing ads
+- `ads_read` for reading account data and insights
+- `business_management` for business settings
+- `pages_read_engagement` for page data used by ad creatives
+- `pages_show_list` for listing pages available as an ad identity
 
-### Ad Account ID
-- Found in Business Manager under Ad Accounts
-- Format: `act_XXXXXXXXXXXXXXXXX`
+Optional scopes depend on features used: `leads_retrieval`, `pages_manage_ads`, and `catalog_management`.
+
+Find the ad account ID in Business Manager. It has the form `act_XXXXXXXXXXXXXXXXX`.
 
 ## 3. Configure Environment
 
-Copy `.env.example` to `.env` inside `AGENT_DIR` and fill in your values:
+Copy `.env.example` to `.env` in `AGENT_DIR` and fill in the values. Keep `.env` private and never commit it.
+
+macOS or Linux (Bash):
+
+```bash
+cd "$HOME/agents/meta-ads"
+cp .env.example .env
+```
+
+Windows (PowerShell):
+
+```powershell
+Set-Location "$env:USERPROFILE\agents\meta-ads"
+Copy-Item .env.example .env
+```
+
+Add these values to the `.env` file in that folder:
 
 ```env
 META_ADS_ACCESS_TOKEN=your_long_lived_token_here
@@ -52,47 +58,66 @@ META_ADS_APP_ID=your_app_id
 META_ADS_APP_SECRET=your_app_secret
 ```
 
-Never commit `.env` to version control.
-
 ## 4. Install Dependencies
 
-```bash
-cd AGENT_DIR
+From `AGENT_DIR`, run the same cross-platform command in either shell:
+
+```text
 npm install
 ```
 
-## 5. Check Readiness
+## 5. Keep Writes Disabled Until Needed
+
+Every live write requires `META_ADS_WRITES_ENABLED=true`. For read-only use, leave it unset or set it to `false`.
+
+Bash, for the current terminal session:
 
 ```bash
-node AGENT_DIR/src/index.js doctor
+export META_ADS_WRITES_ENABLED=false
 ```
 
-Without credentials the agent stays in offline copilot mode (drafts only). With credentials it reports `ready_for_live_api`.
+PowerShell, for the current terminal session:
 
-## 6. Test Connection and Initial Sync
+```powershell
+$env:META_ADS_WRITES_ENABLED = "false"
+```
+
+To enable writes for an approved task, set the value to `true` in the same shell or in the private `.env` file. Handlers that have an exact confirmation phrase still require it after approval. Campaign activation, campaign pausing, and rule creation have exact confirmation phrases.
+
+## 6. Check Readiness
+
+From the parent folder of `AGENT_DIR`, run:
 
 ```bash
-node AGENT_DIR/src/index.js account
-node AGENT_DIR/src/index.js sync
+node "$HOME/agents/meta-ads/src/index.js" doctor
 ```
 
-## API Rate Limits
-- Standard: 200 calls per hour per ad account
-- Insights: 60 calls per hour (heavier quota)
-- Batch requests: up to 50 operations per batch
-- The agent caches data locally in `data/` to minimize API calls
+```powershell
+node "$env:USERPROFILE\agents\meta-ads\src\index.js" doctor
+```
 
-## Safety Switches (recommended)
+Without credentials, the agent stays in offline mode. With credentials, the doctor reports whether live API access is ready.
 
-The agent ships with three independent safety layers. Set these in the same `.env`:
+## 7. Test Connection and Initial Sync
 
-- `META_ADS_WRITES_ENABLED=true` is required before ANY write command works. Leave it unset for read-only use.
-- `META_ADS_MAX_DAILY_BUDGET_CENTS=5000` caps every budget the agent can set (5000 = $50/day). The agent refuses anything above it.
-- `META_ADS_AUDIT_LOG_PATH` (optional) moves the JSONL audit log; by default every write attempt is recorded in `data/audit.jsonl`.
+Bash:
 
-Every mutating command also supports `--dry-run`, which prints exactly what would be sent without calling the API, and campaign activation, pausing, and rule creation each require typing an exact CONFIRM string.
+```bash
+node "$HOME/agents/meta-ads/src/index.js" account
+node "$HOME/agents/meta-ads/src/index.js" sync
+```
 
-## Token Renewal
-- Long-lived user tokens expire in 60 days
-- System user tokens (Business Manager) never expire; recommended for production
-- Set a calendar reminder to refresh user tokens before expiry
+PowerShell:
+
+```powershell
+node "$env:USERPROFILE\agents\meta-ads\src\index.js" account
+node "$env:USERPROFILE\agents\meta-ads\src\index.js" sync
+```
+
+## Carousel Creatives
+
+Use `create-carousel-creative` for an ordered carousel of 2 to 10 cards. Run its `--dry-run` first and review the cards and warnings before enabling a live write. For Instagram, prepare square 1:1 slides, ideally 1080 by 1080 pixels. The recipe creates a creative only, it does not create or activate an ad.
+
+## Rate Limits and Local Data
+
+Meta applies per-account rate limits. The agent caches data locally in `data/` to reduce requests. Keep local cache and audit files private.

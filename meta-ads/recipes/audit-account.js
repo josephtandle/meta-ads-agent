@@ -18,8 +18,8 @@ function positiveNumberOrNull(input, name) {
 }
 
 function budgetCents(adSet) {
-  if (adSet.daily_budget !== undefined && adSet.daily_budget !== null) return Number(adSet.daily_budget);
-  return null;
+  const value = Number(adSet.daily_budget);
+  return Number.isFinite(value) && value > 0 ? value : null;
 }
 
 module.exports.runRecipe = async function runRecipe(input = {}) {
@@ -55,11 +55,18 @@ module.exports.runRecipe = async function runRecipe(input = {}) {
     pixelStats[pixel.id] = await readCheck(`pixel stats (${pixel.id})`, () => api.getPixelStats(pixel.id, "last_28d"), skippedChecks);
   }
 
-  const activeAdSets = adSets.filter((adSet) => adSet.status === "ACTIVE");
+  const activeCampaigns = campaigns.filter((campaign) => (campaign.effective_status || campaign.status) === "ACTIVE");
+  const activeAdSets = adSets.filter((adSet) => {
+    if ((adSet.effective_status || adSet.status) !== "ACTIVE") return false;
+    const parent = campaigns.find((campaign) => campaign.id === adSet.campaign_id);
+    return !parent || (parent.effective_status || parent.status) === "ACTIVE";
+  });
   const learningFloorCents = targetCpa === null ? null : targetCpa * 100 * 50 / 7;
+  const evaluableAdSets = activeAdSets.filter((adSet) => budgetCents(adSet) !== null);
+  const unavailableBudgetCount = activeAdSets.length - evaluableAdSets.length;
   const underfundedAdSets = learningFloorCents === null
     ? []
-    : adSets.filter((adSet) => budgetCents(adSet) !== null && budgetCents(adSet) < learningFloorCents);
+    : evaluableAdSets.filter((adSet) => budgetCents(adSet) < learningFloorCents);
   const adsPerAdSet = adSets.map((adSet) => ({
     id: adSet.id,
     name: adSet.name || "Unnamed",
@@ -69,33 +76,46 @@ module.exports.runRecipe = async function runRecipe(input = {}) {
   const frequency = accountInsightRows[0]?.frequency ?? null;
   const recommendations = [];
 
-  if (campaigns.length > 4 || adSets.length > 8) {
+  if (campaignsResponse && adSetsResponse && (activeCampaigns.length > 4 || activeAdSets.length > 8)) {
     recommendations.push("Consolidate only where objectives, exclusions, events, budget controls, or test questions are not materially distinct. Rule: MEDIA-BUYER-DOCTRINE account-structure consolidation doctrine.");
   }
   if (targetCpa !== null && underfundedAdSets.length) {
     recommendations.push("Move the optimisation event one truthful step shallower or consolidate budget before changing bids. Rule: DIAGNOSIS-PLAYBOOK section 3, target CPA x 50 / 7 learning budget.");
   }
-  if (frequency !== null && Number(frequency) > 3) {
-    recommendations.push("Inspect fresh creative concepts and the full delivery context before calling this fatigue. Rule: DIAGNOSIS-PLAYBOOK section 4, cold frequency above 3.0.");
-  }
   if (!recommendations.length) {
-    recommendations.push("No account-level doctrine rule fired from the available platform data. Reconcile the selected event with CRM, checkout, and operating capacity before a live change. Rule: DIAGNOSIS-PLAYBOOK sections 1 and 2.");
+    recommendations.push(skippedChecks.length
+      ? "Audit inputs are incomplete, so no account-level doctrine conclusion can be made. Re-run the failed checks before a live change."
+      : "No account-level doctrine rule fired from the available platform data. Reconcile the selected event with CRM, checkout, and operating capacity before a live change. Rule: DIAGNOSIS-PLAYBOOK sections 1 and 2.");
   }
 
-  const structureFinding = `${campaigns.length} campaigns and ${adSets.length} ad sets found. ${campaigns.length > 4 || adSets.length > 8 ? "Fragmentation risk is elevated against the consolidation doctrine." : "Counts do not exceed the doctrine reference range, but material distinctions still need review."}`;
-  const creativeFinding = ads.length
+  const structureFinding = !campaignsResponse || !adSetsResponse
+    ? "Account structure is unknown because campaign or ad set inventory could not be read."
+    : `${campaigns.length} campaigns and ${adSets.length} ad sets found, including ${activeCampaigns.length} active campaigns and ${activeAdSets.length} active ad sets. ${activeCampaigns.length > 4 || activeAdSets.length > 8 ? "Fragmentation risk is elevated against the consolidation doctrine." : "Active counts do not exceed the doctrine reference range, but material distinctions still need review."}`;
+  const creativeFinding = !adsResponse
+    ? "Creative inventory is unknown because ad data could not be read."
+    : ads.length
     ? `${ads.length} ads found. Ad counts by ad set: ${adsPerAdSet.map((item) => `${item.name} (${item.count})`).join(", ")}. ${frequency === null ? "Frequency was unavailable." : `7-day account frequency: ${Number(frequency).toFixed(2)}.`}`
-    : "Ad volume could not be checked because no ad data was returned.";
-  const learningFinding = targetCpa === null
+    : "No ads were returned.";
+  const learningFinding = !adSetsResponse
+    ? "Spend-versus-learning math is unknown because ad set inventory could not be read."
+    : targetCpa === null
     ? "Spend-versus-learning math could not be calculated because targetCpa was not supplied."
-    : `Learning floor: $${(learningFloorCents / 100).toFixed(2)}/day per ad set (target CPA $${targetCpa.toFixed(2)} x 50 / 7). ${underfundedAdSets.length ? `${underfundedAdSets.length} ad set(s) are below that floor based on listed daily budgets.` : "No listed ad set budget was below that floor."}`;
+    : !activeAdSets.length
+    ? "No active ad sets were returned, so learning-budget adequacy is not assessed."
+    : !evaluableAdSets.length
+    ? "Learning-budget adequacy cannot be assessed: active ad sets have no usable daily budgets. Check campaign-level or lifetime budgets."
+    : `Reference learning floor: $${(learningFloorCents / 100).toFixed(2)}/day per active ad set (target CPA $${targetCpa.toFixed(2)} x 50 / 7). ${underfundedAdSets.length ? `${underfundedAdSets.length} active ad set(s) are below that reference based on listed daily budgets.` : "No evaluated active ad set daily budget was below that reference."} ${unavailableBudgetCount ? `Budget adequacy cannot be determined for ${unavailableBudgetCount} other active ad set(s); inspect campaign-level or lifetime budgets.` : ""}`.trim();
+
+  const frequencyNote = frequency === null
+    ? "Frequency was unavailable."
+    : `7-day account-wide frequency: ${Number(frequency).toFixed(2)}. Account-wide frequency cannot establish cold-audience fatigue without audience-level delivery evidence.`;
 
   return {
     status: skippedChecks.length ? "partial" : "ok",
     reply: [
       "Meta Ads account audit",
       "", "Structure findings", `- ${structureFinding}`,
-      "", "Creative findings", `- ${creativeFinding}`,
+      "", "Creative findings", `- ${creativeFinding}`, `- ${frequencyNote}`,
       "", "Spend-versus-learning math", `- ${learningFinding}`,
       "", "Recommendations", ...recommendations.map((recommendation) => `- ${recommendation}`),
       "", "Skipped checks", ...(skippedChecks.length ? skippedChecks.map((check) => `- ${check}`) : ["- None"]),
@@ -105,12 +125,14 @@ module.exports.runRecipe = async function runRecipe(input = {}) {
       adSets,
       ads,
       pixels,
-      activeCampaignCount: campaigns.filter((campaign) => campaign.status === "ACTIVE").length,
+      activeCampaignCount: activeCampaigns.length,
       activeAdSetCount: activeAdSets.length,
       adsPerAdSet,
       targetCpa,
       learningFloorCents,
       underfundedAdSetIds: underfundedAdSets.map((adSet) => adSet.id),
+      evaluatedBudgetCount: evaluableAdSets.length,
+      unavailableBudgetCount,
       accountInsights: { last7d: extractData(accountInsights7d), last28d: extractData(accountInsights28d) },
       campaignInsights,
       pixelStats,

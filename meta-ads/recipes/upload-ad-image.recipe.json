@@ -9,5 +9,6 @@
   "requiredContext": [],
   "outputMode": "text",
   "fallbackPolicy": "worker_optional",
+  "safety": { "destructive": true },
   "handler": "./upload-ad-image.js"
 }

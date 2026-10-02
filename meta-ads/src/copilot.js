@@ -77,7 +77,7 @@ function buildCampaignDraft(input = {}) {
       "Confirm landing page matches the ad promise.",
       "Review creative and copy for compliance.",
       "Create campaign/ad set/ad as PAUSED first.",
-      "Get the account owner's approval before activation or budget increase.",
+      "Get the account owner’s approval before activation or budget increase.",
     ],
   };
 }

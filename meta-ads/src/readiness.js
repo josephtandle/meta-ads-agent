@@ -4,22 +4,31 @@ const config = require("../config/config.json");
 const api = require("./api-client");
 
 const ENV_PATH = path.join(__dirname, "../.env");
+const ENV_PATHS = [ENV_PATH];
 
-function readEnvFile() {
-  if (!fs.existsSync(ENV_PATH)) return {};
-
+function readEnvFile({ paths = ENV_PATHS, existsSync = fs.existsSync, readFileSync = fs.readFileSync } = {}) {
   const env = {};
-  const lines = fs.readFileSync(ENV_PATH, "utf8").split(/\r?\n/);
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
+  for (const envPath of paths.slice().reverse()) {
+    if (!existsSync(envPath)) continue;
 
-    const eq = trimmed.indexOf("=");
-    if (eq === -1) continue;
+    let lines;
+    try {
+      lines = readFileSync(envPath, "utf8").split(/\r?\n/);
+    } catch (error) {
+      if (error.code === "EACCES" || error.code === "EPERM") continue;
+      throw error;
+    }
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) continue;
 
-    const key = trimmed.slice(0, eq).trim();
-    const rawValue = trimmed.slice(eq + 1).trim();
-    env[key] = rawValue.replace(/^['"]|['"]$/g, "");
+      const eq = trimmed.indexOf("=");
+      if (eq === -1) continue;
+
+      const key = trimmed.slice(0, eq).trim();
+      const rawValue = trimmed.slice(eq + 1).trim();
+      env[key] = rawValue.replace(/^['"]|['"]$/g, "");
+    }
   }
   return env;
 }
@@ -30,7 +39,7 @@ function envStatus(environment = process.env, fileEnv = readEnvFile()) {
   return required.map((name) => ({
     name,
     present: Boolean(environment[name] || fileEnv[name]),
-    source: environment[name] ? "process" : fileEnv[name] ? ENV_PATH : null,
+    source: environment[name] ? "process" : fileEnv[name] ? "agent .env or workspace fallback" : null,
   }));
 }
 
@@ -110,7 +119,7 @@ async function readinessReport({ environment = process.env, fileEnv = readEnvFil
     optionalSettings: (config.optionalEnvVars || []).map((name) => ({
       name,
       present: Boolean(environment[name] || fileEnv[name]),
-      source: environment[name] ? "process" : fileEnv[name] ? ENV_PATH : null,
+      source: environment[name] ? "process" : fileEnv[name] ? "agent .env or workspace fallback" : null,
     })),
     missing,
     enabledNow: [
@@ -118,24 +127,27 @@ async function readinessReport({ environment = process.env, fileEnv = readEnvFil
       "paused-by-default launch plans",
       "setup/readiness checks",
       "local JSON draft archive",
+      "carousel creative previews (dry run)",
     ],
     blockedUntilCredentials: [
       "account lookup",
       "campaign sync",
       "audience/pixel listing",
       "live campaign/ad set/ad creation",
+      "carousel creative creation (2 to 10 cards)",
       "performance reporting",
     ],
     guardrails: [
       "Campaign, ad set, and ad drafts remain PAUSED by default.",
-      "Activation requires the account owner's explicit approval.",
-      "Budget increases require the account owner's explicit approval.",
+      "Activation requires the account owner’s explicit approval.",
+      "Budget increases require the account owner’s explicit approval.",
       "No live API writes run until Meta credentials are present.",
+      "Carousel creatives are created without an ad; ads stay PAUSED until a human activates them.",
     ],
     nextSteps: missing.length
       ? [
           "Create or confirm a Meta Business app/system user.",
-          "Add the required Meta Ads env vars to the agent's local .env file.",
+          "Add the required Meta Ads env vars to the installed agent folder’s .env file.",
           "Run doctor again, then sync account data.",
           "Draft the first campaign locally before any live create call.",
         ]
@@ -153,5 +165,6 @@ async function readinessReport({ environment = process.env, fileEnv = readEnvFil
 }
 
 module.exports = {
+  readEnvFile,
   readinessReport,
 };

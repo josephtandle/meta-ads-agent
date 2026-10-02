@@ -20,6 +20,8 @@
  *   node src/index.js ads list [adsetId]               - List ads
  *   node src/index.js ads create '<json>'              - Create ad
  *   node src/index.js creatives create '<json>'        - Create ad creative
+ *   node src/index.js creatives carousel <spec.json|'<json>'> [--dry-run] - Create carousel creative
+ *   node src/index.js creatives carousel --example    - Print carousel spec template
  *   node src/index.js images upload <path|url> [name]  - Upload an ad image
  *   node src/index.js images list                       - List ad images
  *   node src/index.js insights [timeRange]             - Account insights
@@ -51,6 +53,7 @@ const api = require("./api-client");
 const { buildCampaignDraft, saveCampaignDraft } = require("./copilot");
 const { readinessReport } = require("./readiness");
 const { checkDailyBudgetLimit, writeGate } = require("./recipe-helpers");
+const carousel = require("./carousel");
 const fs = require("fs");
 const path = require("path");
 
@@ -330,10 +333,30 @@ async function main() {
         break;
 
       case "creatives":
-        if (sub === "create") {
-          if (!args[2]) { console.error("Usage: creatives create '<json>'"); process.exit(1); }
-          writeGate("creatives create");
-          pp(await api.createAdCreative(JSON.parse(args[2])));
+        switch (sub) {
+          case "create":
+            if (!args[2]) { console.error("Usage: creatives create '<json>'"); process.exit(1); }
+            writeGate("creatives create");
+            pp(await api.createAdCreative(JSON.parse(args[2])));
+            break;
+          case "carousel": {
+            if (args[2] === "--example") {
+              pp(carousel.carouselExampleSpec());
+              break;
+            }
+            if (!args[2]) { console.error("Usage: creatives carousel <spec.json|'<json>'> [--dry-run]"); process.exit(1); }
+            const loaded = carousel.loadCarouselSpec(args[2]);
+            const { spec, warnings } = carousel.validateCarouselSpec(loaded);
+            if (!isDryRun) writeGate("creatives carousel");
+            const result = await api.createCarouselCreative(spec, isDryRun);
+            result.warnings = warnings;
+            warnings.forEach((warning) => console.error(`Warning: ${warning}`));
+            pp(result);
+            break;
+          }
+          default:
+            console.error("Usage: creatives create '<json>' | creatives carousel <spec.json|'<json>'> [--dry-run] | creatives carousel --example");
+            process.exit(1);
         }
         break;
 

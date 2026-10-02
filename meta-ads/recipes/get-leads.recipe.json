@@ -10,6 +10,7 @@
   "outputMode": "text",
   "fallbackPolicy": "worker_optional",
   "safety": {
+    "destructive": false,
     "rule": "Lead PII is saved only under agents/meta-ads/data/lead-exports and is never included in audit records."
   },
   "handler": "./get-leads.js"

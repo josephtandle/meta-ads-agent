@@ -9,5 +9,6 @@
   "requiredContext": [],
   "outputMode": "text",
   "fallbackPolicy": "worker_optional",
+  "safety": { "destructive": false },
   "handler": "./search-ad-library.js"
 }

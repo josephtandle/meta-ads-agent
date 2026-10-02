@@ -16,5 +16,6 @@
   "requiredContext": [],
   "outputMode": "text",
   "fallbackPolicy": "worker_optional",
+  "safety": { "destructive": false },
   "handler": "./get-dashboard.js"
 }

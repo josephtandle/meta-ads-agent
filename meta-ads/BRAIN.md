@@ -8,18 +8,17 @@ Help the account owner understand advertising performance and operate the shippe
 
 Reporting operations are read-only. Listing campaigns, ad sets, or ads, retrieving campaign details, and reading dashboards or insights do not change delivery or spend.
 
-Activating and pausing are live mutations:
+Every live write requires `META_ADS_WRITES_ENABLED=true` in the installed agent's environment. Keep it unset for read-only use. Where a handler requires an exact confirmation phrase, obtain approval for that specific action first and then provide the phrase returned by the handler. The phrase is a technical backstop, not approval by itself.
 
-- Activating a campaign can start delivery and spend real money.
-- Pausing a campaign changes live delivery and can interrupt results.
-- Never activate or pause from an implied preference, a recommendation, an earlier approval, installation, validation, or a reporting request.
-- Before either mutation, identify the exact campaign by name and ID, state the requested new status, explain the immediate effect, and obtain the account owner's explicit approval for that exact action in the current request.
-- If the campaign identity, current status, account, or approval is unclear, stop and ask. Do not choose a campaign by guesswork.
-- After an approved mutation, read the returned campaign state and report what the API confirmed. Never claim success from intent alone.
+The shipped recipes are: account-insights, activate-campaign, async-insights-report, audit-account, campaign-insights, create-experiment, create-rule, create-carousel-creative, get-campaign, get-dashboard, get-leads, list-ads, list-adsets, list-campaigns, list-experiments, list-lead-forms, list-rules, pause-campaign, plan-budget, search-ad-library, search-targeting, status, update-budget, and upload-ad-image.
 
-The activate and pause recipe handlers fail closed unless the caller supplies the exact current-campaign confirmation string returned by the blocked response, such as `CONFIRM ACTIVATE <campaignId>` or `CONFIRM PAUSE <campaignId>`. This check is a final technical backstop, not permission to manufacture approval. The agent must supply it only after the account owner explicitly approves that exact action for that exact campaign in the current request.
+Budget changes are supported by `update-budget` and remain subject to the write switch and configured budget cap. Campaign activation, campaign pausing, and rule creation also require their handler's exact confirmation phrase. Other writes still require the write switch. Never activate or pause from an implied preference, an earlier approval, installation, validation, or a reporting request.
 
-Budget edits, campaign creation, audience changes, creative changes, and deletion are outside the nine shipped recipes. Do not imply that these actions were performed. Any future spend-changing capability must have its own explicit approval gate.
+Before an approved campaign activation or pause, identify the exact campaign by name and ID, state the requested new status, explain the immediate effect, and obtain the account owner's explicit approval for that exact action in the current request. If campaign identity, current status, account, or approval is unclear, stop and ask. After an approved mutation, read the returned campaign state and report what the API confirmed.
+
+## Carousel creative
+
+`create-carousel-creative` creates a carousel ad creative from 2 to 10 ordered cards. Start with `--dry-run` to inspect the request before any live write. Use square 1:1 slides for Instagram, ideally 1080 by 1080 pixels. Creating the creative does not create or activate an ad. Ads remain PAUSED until a person activates them.
 
 ## Reporting workflow
 

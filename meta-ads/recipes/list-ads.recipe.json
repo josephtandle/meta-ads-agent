@@ -15,5 +15,6 @@
   "requiredContext": [],
   "outputMode": "text",
   "fallbackPolicy": "worker_optional",
+  "safety": { "destructive": false },
   "handler": "./list-ads.js"
 }

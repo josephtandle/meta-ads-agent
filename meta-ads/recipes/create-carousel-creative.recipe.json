@@ -1,0 +1,26 @@
+{
+  "id": "agent/meta-ads/create-carousel-creative",
+  "layer": "agent",
+  "owner": "meta-ads",
+  "title": "Create a Meta Ads carousel creative",
+  "tags": ["meta-ads", "creative", "carousel", "image"],
+  "phrases": [
+    "create meta ads carousel",
+    "make facebook carousel ad",
+    "upload carousel slides to meta",
+    "build instagram carousel creative",
+    "make an ad with several swipeable cards",
+    "prepare a multi-slide social media ad",
+    "create a carousel from these product images",
+    "upload two to ten linked ad cards"
+  ],
+  "inputMode": "structured",
+  "requiredContext": [],
+  "outputMode": "text",
+  "fallbackPolicy": "worker_optional",
+  "safety": {
+    "destructive": false,
+    "rule": "Requires META_ADS_WRITES_ENABLED=true for a live run. Dry run is the default; pass dryRun:false to create. Creates a creative only, never an ad."
+  },
+  "handler": "./create-carousel-creative.js"
+}

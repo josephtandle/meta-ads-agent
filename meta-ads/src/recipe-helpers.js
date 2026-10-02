@@ -29,8 +29,12 @@ function checkDailyBudgetLimit(dailyBudgetCents, action) {
     throw new Error(`${action}: daily_budget must be positive`);
   }
   const limit = process.env.META_ADS_MAX_DAILY_BUDGET_CENTS;
-  if (!limit) return;
-  if (budget > Number(limit)) {
+  if (limit === undefined) return;
+  const configuredLimit = Number(limit);
+  if (!Number.isFinite(configuredLimit) || configuredLimit <= 0) {
+    throw new Error(`${action}: META_ADS_MAX_DAILY_BUDGET_CENTS must be a positive finite number`);
+  }
+  if (budget > configuredLimit) {
     throw new Error(`${action}: budget ${budget} exceeds META_ADS_MAX_DAILY_BUDGET_CENTS=${limit}`);
   }
 }
