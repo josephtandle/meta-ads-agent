@@ -60,8 +60,8 @@ async function run() {
   const claude = fs.readFileSync(path.join(agentRoot, "CLAUDE.md"), "utf8");
   const agents = fs.readFileSync(path.join(agentRoot, "AGENTS.md"), "utf8");
   assert.strictEqual(claude, agents, "CLAUDE.md and AGENTS.md must be identical");
-  assert.ok(claude.trim().split("\n").length < 40, "guidance stays under 40 lines");
-  for (const phrase of [".env", "META_ADS_WRITES_ENABLED=true", "--dry-run", "META_ADS_MAX_DAILY_BUDGET_CENTS", "src-checksums.json", "Never edit anything under `src/` or `config/`"]) {
+  assert.ok(claude.trim().split("\n").length < 60, "guidance stays under 60 lines");
+  for (const phrase of [".env", "META_ADS_WRITES_ENABLED=true", "--dry-run", "META_ADS_MAX_DAILY_BUDGET_CENTS", "src-checksums.json", "Never edit anything under `src/` or `config/`", "policy check", "PAUSED", "audit log-external", "doctor", "docs/CONNECTOR-MODE.md"]) {
     assert.ok(claude.includes(phrase), `guidance must mention ${phrase}`);
   }
   assert.ok(!claude.includes(String.fromCharCode(0x2014)), "no em dashes");

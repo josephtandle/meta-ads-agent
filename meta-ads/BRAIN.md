@@ -10,11 +10,15 @@ Reporting operations are read-only. Listing campaigns, ad sets, or ads, retrievi
 
 Every live write requires `META_ADS_WRITES_ENABLED=true` in the installed agent's environment. Keep it unset for read-only use. Where a handler requires an exact confirmation phrase, obtain approval for that specific action first and then provide the phrase returned by the handler. The phrase is a technical backstop, not approval by itself.
 
-The shipped recipes are: account-insights, activate-campaign, async-insights-report, audit-account, campaign-insights, create-experiment, create-rule, create-carousel-creative, get-campaign, get-dashboard, get-leads, list-ads, list-adsets, list-campaigns, list-experiments, list-lead-forms, list-rules, pause-campaign, plan-budget, policy-check, rejected-ad-fix, search-ad-library, search-targeting, status, update-budget, and upload-ad-image.
+The shipped recipes are: account-insights, activate-campaign, async-insights-report, audit-account, campaign-insights, connector-creative-test, create-experiment, create-rule, create-carousel-creative, get-campaign, get-dashboard, get-leads, list-ads, list-adsets, list-campaigns, list-experiments, list-lead-forms, list-rules, pause-campaign, plan-budget, policy-check, rejected-ad-fix, search-ad-library, search-targeting, status, update-budget, and upload-ad-image.
 
 Budget changes are supported by `update-budget` and remain subject to the write switch and configured budget cap. Campaign activation, campaign pausing, and rule creation also require their handler's exact confirmation phrase. Other writes still require the write switch. Never activate or pause from an implied preference, an earlier approval, installation, validation, or a reporting request.
 
 Before an approved campaign activation or pause, identify the exact campaign by name and ID, state the requested new status, explain the immediate effect, and obtain the account owner's explicit approval for that exact action in the current request. If campaign identity, current status, account, or approval is unclear, stop and ask. After an approved mutation, read the returned campaign state and report what the API confirmed.
+
+## Connector mode
+
+When the owner uses Meta's official Ads connector, this agent does not make the call, so its guardrails only run if you run them. Before any connector change follow the five steps in CLAUDE.md: policy check first (stop on BLOCK unless the owner gives a reason), everything PAUSED, never above the cap `doctor` prints (never open .env), show the full plan and wait for the owner's yes, then `audit log-external` for each change. Use the connector-creative-test recipe to prepare a creative test this way.
 
 ## Meta policy check
 

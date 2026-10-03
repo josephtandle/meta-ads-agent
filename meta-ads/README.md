@@ -30,6 +30,14 @@ node .\src\index.js doctor
 
 The `create-carousel-creative` recipe makes ordered carousels with 2 to 10 cards. Run `--dry-run` first. Use square 1:1 slides for Instagram, ideally 1080 by 1080 pixels. The creative is not an ad and is not activated automatically.
 
+## Using the official Meta Ads connector
+
+Most owners connect Claude to Meta's official Ads connector (`https://mcp.facebook.com/ads`, with "Take actions in this ad account" allowed). Claude then creates and edits campaigns through Meta itself, with no developer app or token on your computer. Put `META_ADS_CONNECTION=connector` in this folder's `.env` and `node src/index.js doctor` will say `connection: connector`.
+
+In connector mode this agent still protects you, as long as Claude follows the five steps in `CLAUDE.md`: run `policy check` on every ad's text first and stop on BLOCK; create everything PAUSED; never set a daily budget above the cap `doctor` prints; show you the full plan and wait for your yes; and log each change with `node src/index.js audit log-external "<what changed>"`. `node src/index.js audit tail` shows the last changes. The recipe "Build my creative test through the connector" (`recipes/connector-creative-test.js`) runs those checks and prints the plan for you, without calling Meta.
+
+Take the long way (developer app, System User token, `.env`, see `docs/SETUP.md`) when the connector is not available to you, when you want the Mission Control dashboard to sync your numbers, or when you want the agent's own write commands with dry runs. Details: `docs/CONNECTOR-MODE.md`.
+
 ## Check my ads against Meta's policies
 
 Meta rejects ads that break its Advertising Standards, and too many rejections can restrict your ad account.

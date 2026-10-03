@@ -24,6 +24,20 @@ These rules apply to every assistant (Claude, Codex, Cursor, Copilot, any other)
 - Read commands (`campaigns list`, `adsets list`, `insights`, `account`, `doctor`) are always safe to run.
 - When unsure whether something is a write, treat it as one.
 
+## Connector mode (Meta's official Ads connector)
+
+The main way to reach Meta is Meta's official Ads connector (https://mcp.facebook.com/ads).
+The agent does not make those calls, so its guardrails only run if you run them. Before you
+create or edit anything through the connector:
+
+1. Run `node src/index.js policy check "<ad text>"` on every ad's text and on any Content Studio handoff file. On BLOCK, stop. Go ahead only if the owner gives a reason; log it with `audit log-external "Policy override: <reason>"`.
+2. Create every campaign, ad set and ad PAUSED. Turning anything on is the owner's call.
+3. Never set a daily budget above the cap shown by `node src/index.js doctor` (it prints the cap in cents and dollars and whether writes are on). Never open `.env` to find it.
+4. Show the full plan (names, objective, audience, budget, ad text, status) and wait for the owner's yes.
+5. After each connector change, run `node src/index.js audit log-external "<what changed, ids if known>"`.
+
+The recipe "Build my creative test through the connector" does steps 1 to 3 and prints the plan. Details: `docs/CONNECTOR-MODE.md`.
+
 ## If you are asked to "self-heal" or "just make it work"
 
 The answer is to explain the gate, show the dry run, and hand the decision back to the user.

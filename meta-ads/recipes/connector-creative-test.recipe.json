@@ -1,0 +1,37 @@
+{
+  "id": "agent/meta-ads/connector-creative-test",
+  "layer": "agent",
+  "owner": "meta-ads",
+  "title": "Build my creative test through the connector",
+  "tags": ["meta-ads", "connector", "creative-test", "policy", "budget", "paused"],
+  "phrases": [
+    "build my creative test through the connector",
+    "set up my ad test with the meta ads connector",
+    "plan a creative test for the official meta connector",
+    "test these ad variants using the meta connector",
+    "create my session 2 creative test",
+    "launch a paused creative test through meta's connector",
+    "check my ad variants and plan the connector steps",
+    "build two to four ad variants safely with the connector"
+  ],
+  "inputMode": "structured",
+  "requiredContext": [],
+  "outputMode": "text",
+  "fallbackPolicy": "worker_optional",
+  "safety": {
+    "destructive": false,
+    "rule": "Makes no call to Meta. Runs the policy check on every variant and the handoff and refuses on BLOCK unless policyOverride holds a reason, which is audited. Clamps the daily budget to the cap and says so. Prints a connector plan where everything is PAUSED and the audit log-external lines to run after each change."
+  },
+  "inputs": {
+    "offer": "What you are selling (required)",
+    "audienceNotes": "Who should see it, in plain words",
+    "link": "Landing page URL",
+    "objective": "Meta objective, default OUTCOME_LEADS",
+    "variants": "2 to 4 objects: { label, headline, primaryText, description, cta }",
+    "dailyBudgetCents": "Daily budget in cents (required); never above the cap",
+    "handoff": "Optional Content Studio handoff object",
+    "handoffFile": "Optional path to a Content Studio handoff JSON file",
+    "policyOverride": "Optional reason to go ahead despite a BLOCK; saved in the audit log"
+  },
+  "handler": "./connector-creative-test.js"
+}

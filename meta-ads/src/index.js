@@ -51,6 +51,8 @@
  *   node src/index.js leads forms|get|lead              - Retrieve lead forms and leads
  *   node src/index.js policy check <file|'<json>'|creative-id|"text"> [--json] - Check ad text against Meta's ad policies (offline)
  *   node src/index.js policy rules [--json]             - List the policy rule ids
+ *   node src/index.js audit log-external "<summary>" [--ids a,b] [--source connector] - Log a change made outside this agent (Meta Ads connector); sends nothing to Meta
+ *   node src/index.js audit tail [n]                    - Print the last n audit lines, redacted
  *
  * Every command that creates ad copy (ads create, creatives create, creatives
  * carousel, draft-campaign) runs the policy check first. A BLOCK is refused
@@ -65,6 +67,7 @@ const { redactString, redactValue } = require("./redact");
 const carousel = require("./carousel");
 const dashboardData = require("./dashboard-data");
 const policy = require("./policy-check");
+const connector = require("./connector");
 const config = require("../config/config.json");
 const fs = require("fs");
 const path = require("path");
@@ -652,6 +655,8 @@ async function main() {
       case "setup-status": {
         const report = await readinessReport();
         for (const warning of report.warnings || []) console.error(`Warning: ${warning}`);
+        const cap = report.budgetCap || {};
+        console.error(`Connection: ${report.connection}. Budget cap: ${cap.limitCents === null ? "invalid setting, every budget is refused" : `${cap.limitCents} cents (${cap.limitDollars}) a day`}. Writes: ${report.writes}.`);
         pp(report);
         break;
       }
@@ -678,6 +683,10 @@ async function main() {
         break;
       }
 
+      case "audit":
+        connector.runAuditCommand(sub, args.slice(2));
+        break;
+
       case "strategy":
         runStrategyCommand(sub, args.slice(2));
         break;
@@ -699,7 +708,7 @@ async function main() {
 
       default:
         console.error(`Unknown command: ${command}`);
-        console.log("Commands: dashboard, dashboard-data, campaigns, adsets, ads, creatives, images, insights, targeting, ad-library, audiences, pixels, experiments, rules, leads, account, sync, refresh, doctor, strategy, draft-campaign, policy");
+        console.log("Commands: dashboard, dashboard-data, campaigns, adsets, ads, creatives, images, insights, targeting, ad-library, audiences, pixels, experiments, rules, leads, account, sync, refresh, doctor, strategy, draft-campaign, policy, audit");
         process.exit(1);
     }
   } catch (err) {

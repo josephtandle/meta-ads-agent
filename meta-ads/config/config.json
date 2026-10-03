@@ -10,7 +10,8 @@
   "optionalEnvVars": [
     "META_ADS_WRITES_ENABLED",
     "META_ADS_MAX_DAILY_BUDGET_CENTS",
-    "META_ADS_AUDIT_LOG_PATH"
+    "META_ADS_AUDIT_LOG_PATH",
+    "META_ADS_CONNECTION"
   ],
   "secretEnvVars": [
     "META_ADS_ACCESS_TOKEN",

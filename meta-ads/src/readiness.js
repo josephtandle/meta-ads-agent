@@ -116,19 +116,38 @@ function budgetCapStatus(environment = process.env, fileEnv = readEnvFile()) {
     : cap.source === "env"
       ? `Budget writes are capped at ${cap.limitCents} cents per day by META_ADS_MAX_DAILY_BUDGET_CENTS.`
       : "META_ADS_MAX_DAILY_BUDGET_CENTS is set to an invalid value; every budget write is refused until it is a positive number.";
-  return { ...cap, writesEnabled: (environment.META_ADS_WRITES_ENABLED || fileEnv.META_ADS_WRITES_ENABLED) === "true", message };
+  const limitDollars = cap.limitCents === null ? null : `$${(cap.limitCents / 100).toFixed(2)}`;
+  return { ...cap, limitDollars, writesEnabled: (environment.META_ADS_WRITES_ENABLED || fileEnv.META_ADS_WRITES_ENABLED) === "true", message };
+}
+
+// How this install reaches Meta. "api": this agent holds a token and calls the
+// Graph API itself. "connector": Claude uses Meta's official Ads connector and
+// this agent keeps the guardrails (policy check, budget cap, audit log) without
+// a token. "not_set": neither yet. Never returns a setting's value.
+function connectionMode(environment = process.env, fileEnv = readEnvFile()) {
+  if (environment.META_ADS_ACCESS_TOKEN || fileEnv.META_ADS_ACCESS_TOKEN) return "api";
+  const chosen = String(environment.META_ADS_CONNECTION || fileEnv.META_ADS_CONNECTION || "").trim().toLowerCase();
+  return chosen === "connector" ? "connector" : "not_set";
 }
 
 async function readinessReport({ environment = process.env, fileEnv = readEnvFile(), apiClient = api, integrity = checkSrcIntegrity(), policyGuide = standardsFreshness() } = {}) {
   const vars = envStatus(environment, fileEnv);
-  const missing = vars.filter((item) => !item.present).map((item) => item.name);
+  const connection = connectionMode(environment, fileEnv);
+  const connectorMode = connection === "connector";
+  const notPresent = vars.filter((item) => !item.present).map((item) => item.name);
+  // In connector mode the token and app settings are not needed here: Claude
+  // reaches Meta through the official connector. They are expected, not missing.
+  const missing = connectorMode ? [] : notPresent;
   const credential = (name) => environment[name] || fileEnv[name];
-  const live = missing.length
+  const skipDetail = connectorMode
+    ? "Connector mode: Claude reaches Meta through the official Meta Ads connector, so this agent makes no live calls."
+    : "Credentials are incomplete, live API checks skipped.";
+  const live = notPresent.length
     ? {
         checks: [
-          liveCheck("account_connection", "skipped", "Credentials are incomplete, live API checks skipped."),
-          liveCheck("app_id", "skipped", "Credentials are incomplete, live API checks skipped."),
-          liveCheck("account_details", "skipped", "Credentials are incomplete, live API checks skipped."),
+          liveCheck("account_connection", "skipped", skipDetail),
+          liveCheck("app_id", "skipped", skipDetail),
+          liveCheck("account_details", "skipped", skipDetail),
         ],
         account: null,
       }
@@ -139,7 +158,10 @@ async function readinessReport({ environment = process.env, fileEnv = readEnvFil
 
   return {
     agent: "meta-ads",
-    status: missing.length
+    connection,
+    status: connectorMode
+      ? "connector_mode"
+      : missing.length
       ? "offline_copilot_only"
       : hasLiveFailure ? "connection_check_failed" : "ready_for_live_api",
     writes: writesEnabled ? "on" : "off",
@@ -160,6 +182,7 @@ async function readinessReport({ environment = process.env, fileEnv = readEnvFil
       source: environment[name] ? "process" : fileEnv[name] ? "agent .env or workspace fallback" : null,
     })),
     missing,
+    ...(connectorMode ? { expectedMissing: notPresent } : {}),
     enabledNow: [
       "offline campaign drafts",
       "paused-by-default launch plans",
@@ -186,12 +209,19 @@ async function readinessReport({ environment = process.env, fileEnv = readEnvFil
       "Ad text is checked against Meta's Advertising Standards before every create; a BLOCK is refused unless --policy-override \"<reason>\" is given, and the override is audited.",
       "New ad sets send promoted_object (pixelId + customEventType such as PURCHASE or LEAD, or pageId for lead forms); conversion goals are refused without one.",
       "New ad sets default targeting_automation.advantage_audience to 1 (Advantage+ audience on); pass advantageAudience: false to send 0.",
+      "Connector mode: before any change through Meta's Ads connector, run policy check, create everything PAUSED, stay at or under the budget cap, get the owner's yes, then log the change with audit log-external.",
     ],
     adSetDefaults: {
       promotedObject: "pixelId + customEventType (PURCHASE, LEAD, COMPLETE_REGISTRATION, ADD_TO_CART, INITIATE_CHECKOUT, SUBSCRIBE, CONTACT) or pageId",
       advantageAudience: 1,
     },
-    nextSteps: missing.length
+    nextSteps: connectorMode
+      ? [
+          "Before any change through the Meta Ads connector, run policy check on the ad text (see docs/CONNECTOR-MODE.md).",
+          `Create everything PAUSED and keep each daily budget at or under ${budgetCapStatus(environment, fileEnv).limitDollars || "the cap"}.`,
+          "After each connector change, run: node src/index.js audit log-external \"<what changed>\" --ids <ids>",
+        ]
+      : missing.length
       ? [
           "Create or confirm a Meta Business app/system user.",
           "Add the required Meta Ads env vars to the installed agent folder’s .env file.",
@@ -212,6 +242,8 @@ async function readinessReport({ environment = process.env, fileEnv = readEnvFil
 }
 
 module.exports = {
+  budgetCapStatus,
+  connectionMode,
   readEnvFile,
   readinessReport,
 };

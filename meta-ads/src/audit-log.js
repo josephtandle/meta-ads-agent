@@ -28,7 +28,9 @@ function sanitize(value) {
   return sanitized;
 }
 
-function writeAudit(action, request, result) {
+// extra.source marks entries for changes made outside this agent (for example
+// "connector" when Claude used Meta's official Ads connector). Optional.
+function writeAudit(action, request, result, extra = {}) {
   const auditPath = process.env.META_ADS_AUDIT_LOG_PATH
     || path.join(__dirname, "../data/audit.jsonl");
   fs.mkdirSync(path.dirname(auditPath), { recursive: true });
@@ -36,6 +38,7 @@ function writeAudit(action, request, result) {
     timestamp: new Date().toISOString(),
     action,
     accountId: ACCOUNT_ID,
+    ...(extra && extra.source ? { source: String(extra.source) } : {}),
     request: redactValue(sanitize(request)),
     result: redactValue(sanitize(result)),
   })}\n`);
