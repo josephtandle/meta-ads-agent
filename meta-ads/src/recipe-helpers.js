@@ -23,13 +23,30 @@ function normalizeTimeRange(input, fallback = "last_30d") {
   return normalized || fallback;
 }
 
+// When META_ADS_MAX_DAILY_BUDGET_CENTS is not set, this cap applies so a missing
+// setting never means "no cap". 2000 cents is $20.00 per day.
+const DEFAULT_MAX_DAILY_BUDGET_CENTS = 2000;
+
+function activeBudgetCap(environment = process.env) {
+  const limit = environment.META_ADS_MAX_DAILY_BUDGET_CENTS;
+  if (limit === undefined) return { limitCents: DEFAULT_MAX_DAILY_BUDGET_CENTS, source: "default" };
+  const configuredLimit = Number(limit);
+  if (!Number.isFinite(configuredLimit) || configuredLimit <= 0) return { limitCents: null, source: "invalid" };
+  return { limitCents: configuredLimit, source: "env" };
+}
+
 function checkDailyBudgetLimit(dailyBudgetCents, action) {
   const budget = Number(dailyBudgetCents);
   if (!Number.isFinite(budget) || budget <= 0) {
     throw new Error(`${action}: daily_budget must be positive`);
   }
   const limit = process.env.META_ADS_MAX_DAILY_BUDGET_CENTS;
-  if (limit === undefined) return;
+  if (limit === undefined) {
+    if (budget > DEFAULT_MAX_DAILY_BUDGET_CENTS) {
+      throw new Error(`${action}: budget ${budget} exceeds the default cap of ${DEFAULT_MAX_DAILY_BUDGET_CENTS} cents (set META_ADS_MAX_DAILY_BUDGET_CENTS to raise it)`);
+    }
+    return;
+  }
   const configuredLimit = Number(limit);
   if (!Number.isFinite(configuredLimit) || configuredLimit <= 0) {
     throw new Error(`${action}: META_ADS_MAX_DAILY_BUDGET_CENTS must be a positive finite number`);
@@ -196,6 +213,8 @@ function buildListResponse({ title, emptyMessage, items, renderRow, metadataKey 
 }
 
 module.exports = {
+  DEFAULT_MAX_DAILY_BUDGET_CENTS,
+  activeBudgetCap,
   buildListResponse,
   checkDailyBudgetLimit,
   extractData,

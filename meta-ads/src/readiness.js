@@ -2,6 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const config = require("../config/config.json");
 const api = require("./api-client");
+const { activeBudgetCap } = require("./recipe-helpers");
 
 const ENV_PATH = path.join(__dirname, "../.env");
 const ENV_PATHS = [ENV_PATH];
@@ -95,6 +96,17 @@ async function runLiveChecks(apiClient, accountId, appId) {
   return checks;
 }
 
+function budgetCapStatus(environment = process.env, fileEnv = readEnvFile()) {
+  const value = environment.META_ADS_MAX_DAILY_BUDGET_CENTS !== undefined ? environment.META_ADS_MAX_DAILY_BUDGET_CENTS : fileEnv.META_ADS_MAX_DAILY_BUDGET_CENTS;
+  const cap = activeBudgetCap(value === undefined ? {} : { META_ADS_MAX_DAILY_BUDGET_CENTS: value });
+  const message = cap.source === "default"
+    ? `META_ADS_MAX_DAILY_BUDGET_CENTS is not set, so the default cap of ${cap.limitCents} cents per day applies to every budget write.`
+    : cap.source === "env"
+      ? `Budget writes are capped at ${cap.limitCents} cents per day by META_ADS_MAX_DAILY_BUDGET_CENTS.`
+      : "META_ADS_MAX_DAILY_BUDGET_CENTS is set to an invalid value; every budget write is refused until it is a positive number.";
+  return { ...cap, writesEnabled: (environment.META_ADS_WRITES_ENABLED || fileEnv.META_ADS_WRITES_ENABLED) === "true", message };
+}
+
 async function readinessReport({ environment = process.env, fileEnv = readEnvFile(), apiClient = api } = {}) {
   const vars = envStatus(environment, fileEnv);
   const missing = vars.filter((item) => !item.present).map((item) => item.name);
@@ -114,6 +126,7 @@ async function readinessReport({ environment = process.env, fileEnv = readEnvFil
       ? "offline_copilot_only"
       : hasLiveFailure ? "connection_check_failed" : "ready_for_live_api",
     apiVersion: config.apiVersion,
+    budgetCap: budgetCapStatus(environment, fileEnv),
     env: vars,
     liveChecks,
     optionalSettings: (config.optionalEnvVars || []).map((name) => ({
