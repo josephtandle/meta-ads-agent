@@ -54,14 +54,15 @@
     "recipes/upload-ad-image.js": "6dd69b93bf1559c559feb6ac083c5cdf54979ea5bbb400ca2141db5667c91979",
     "recipes/upload-ad-image.recipe.json": "49cf24a3c1ab9aa8e1338843573a3a40168be3fbede53da627f8b0b7702287a3",
     "src/api-client-helpers.js": "8cde4b1285f87017a1db2114f6d4f181a72e057fe471a2ef97c23e088dd7e494",
-    "src/api-client.js": "fb4e745a0af186b32f2960a0adf9097c436986ab7b171ab30afa1c330ba57b3c",
+    "src/api-client.js": "3f4a820b949ac90c097be5ea02641d4e55ed22b30c342fd2b1196387118d5fd1",
     "src/audit-log.js": "e1f8964e188b9482068f3dc94e9946a94b2b18f5409e3e9730dd5d5d99a87596",
     "src/carousel.js": "0bd207ead29051b383b0f8bfb3da4b7ac3f566050ad232198c7906ff45ac2ea8",
     "src/copilot.js": "a19e600bafd58c1546319723317b739e4f27f2b3ab92bcac479e5d2554587942",
-    "src/index.js": "9cd7bc7ecbbfcd17037a5f1db36e36dbcfc86a5d3fb86b360a5ff8b3ff353034",
+    "src/dashboard-data.js": "3be303c1d7fb0728866ee7de45f1f5080b0e4ee94a31f804b99f5ba4fab43f7d",
+    "src/index.js": "e7ede255c4e20bdf648955f8c574265c092edf99d790471f7ceb5fe4deca03e3",
     "src/integrity.js": "00603bc3aa00c81d44a59a18d2445610a79684605f21a60ed33d24d49e920ddc",
     "src/rate-limiter.js": "420311bfbbbcebdd63fc2977a28909f78ca4950cdc8b6bf180edba12c8f1893f",
-    "src/readiness.js": "22d5d07f321d85818c096b0d9749eabe8b597d4976c02984753d2ac4dd4b5bba",
+    "src/readiness.js": "2c7e08adec61872c11f71112b61856d5a396b10ca426faddf75799168c920999",
     "src/recipe-helpers.js": "1b1911a82c294e27b84a9e566ee51fdc728ca342326db4161cb4679da868bda5",
     "src/redact.js": "8ef59888fdd0fcbd12b1519b54209574e6b588b14374b9dfb0c2fb8befafc34f"
   }

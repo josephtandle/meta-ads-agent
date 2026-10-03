@@ -41,6 +41,8 @@
  *   node src/index.js pixels stats <id> [timeRange]    - Pixel stats
  *   node src/index.js account                          - Account info
  *   node src/index.js sync                             - Sync all data to local cache
+ *   node src/index.js refresh                          - Same read-only sync, for the dashboard Refresh button
+ *   node src/index.js dashboard-data <section> [--json] [--period 7d|14d|30d|month] - Redacted JSON for the Mission Control dashboard (overview, ads, improvements, summary, freshness, all)
  *   node src/index.js doctor                           - Setup/readiness check
  *   node src/index.js strategy show|init|log "<note>"|context - Manage the local media-buying strategy
  *   node src/index.js draft-campaign '<json>'          - Save offline PAUSED campaign draft
@@ -55,6 +57,8 @@ const { readinessReport } = require("./readiness");
 const { checkDailyBudgetLimit, writeGate } = require("./recipe-helpers");
 const { redactString, redactValue } = require("./redact");
 const carousel = require("./carousel");
+const dashboardData = require("./dashboard-data");
+const config = require("../config/config.json");
 const fs = require("fs");
 const path = require("path");
 
@@ -208,26 +212,66 @@ async function dashboard(timeRange = "last_30d") {
   writeCache("dashboard", { account, insights: insights.data, campaigns: campaigns.data, fetchedAt: new Date().toISOString() });
 }
 
+// Every read the dashboard needs, in one pass. Each source is cached on its
+// own so one failing read (a missing permission, a rate limit) never throws
+// away the others; last-sync.json records what failed and the command exits
+// non-zero so a caller still sees the problem.
+const SYNC_SOURCES = [
+  { name: "campaigns", read: () => api.listCampaigns(), rows: true },
+  { name: "adsets", read: () => api.listAdSets(), rows: true },
+  { name: "ads", read: () => api.listAds(), rows: true },
+  { name: "audiences", read: () => api.listCustomAudiences(), rows: true },
+  { name: "pixels", read: () => api.listPixels(), rows: true },
+  { name: "insights", read: () => api.getAccountInsights(), rows: true },
+  { name: "insights-daily", read: () => api.getInsightsSeries({ level: "account", timeRange: "last_90d", timeIncrement: 1 }), rows: true },
+  { name: "insights-campaigns", read: () => api.getInsightsSeries({ level: "campaign", timeRange: "last_30d" }), rows: true },
+  { name: "insights-adsets", read: () => api.getInsightsSeries({ level: "adset", timeRange: "last_30d" }), rows: true },
+  { name: "insights-ads", read: () => api.getInsightsSeries({ level: "ad", timeRange: "last_30d" }), rows: true },
+  { name: "account", read: () => api.getAccountInfo(), rows: false },
+];
+
 async function syncAll() {
   console.log("Syncing Meta Ads data...");
-  const [campaigns, adsets, audiences, pixels, insights, account] = await Promise.all([
-    api.listCampaigns(),
-    api.listAdSets(),
-    api.listCustomAudiences(),
-    api.listPixels(),
-    api.getAccountInsights(),
-    api.getAccountInfo(),
-  ]);
+  const results = await Promise.allSettled(SYNC_SOURCES.map((source) => source.read()));
+  const counts = {};
+  const errors = {};
+  SYNC_SOURCES.forEach((source, index) => {
+    const result = results[index];
+    if (result.status === "rejected") {
+      errors[source.name] = redactString(result.reason?.message || String(result.reason));
+      return;
+    }
+    const value = source.rows ? (result.value.data || []) : result.value;
+    writeCache(source.name, value);
+    counts[source.name] = source.rows ? value.length : 1;
+  });
+  const failed = Object.keys(errors);
+  writeCache("last-sync", { timestamp: new Date().toISOString(), synced: Object.keys(counts), errors });
 
-  writeCache("campaigns", campaigns.data || []);
-  writeCache("adsets", adsets.data || []);
-  writeCache("audiences", audiences.data || []);
-  writeCache("pixels", pixels.data || []);
-  writeCache("insights", insights.data || []);
-  writeCache("account", account);
-  writeCache("last-sync", { timestamp: new Date().toISOString() });
+  console.log(`Synced: ${counts.campaigns ?? 0} campaigns, ${counts.adsets ?? 0} ad sets, ${counts.ads ?? 0} ads, ${counts.audiences ?? 0} audiences, ${counts.pixels ?? 0} pixels, ${counts["insights-daily"] ?? 0} daily insight rows`);
+  if (failed.length) {
+    for (const name of failed) console.error(`Sync failed for ${name}: ${errors[name]}`);
+    throw new Error(`${failed.length} of ${SYNC_SOURCES.length} sources did not sync (${failed.join(", ")}); the rest were cached.`);
+  }
+}
 
-  console.log(`Synced: ${(campaigns.data || []).length} campaigns, ${(adsets.data || []).length} ad sets, ${(audiences.data || []).length} audiences, ${(pixels.data || []).length} pixels`);
+function refreshBlocker() {
+  const missing = (config.requiredEnvVars || []).filter((name) => !process.env[name]);
+  if (!missing.length) return null;
+  return `Refresh needs Meta credentials. Missing: ${missing.join(", ")}. Add them to agents/meta-ads/.env (see docs/SETUP.md), run doctor, then refresh again.`;
+}
+
+function printDashboardData(section, data, asJson) {
+  if (asJson || section !== "summary") {
+    pp(data);
+    return;
+  }
+  if (data.empty) {
+    console.log(data.message);
+    return;
+  }
+  console.log(`${data.headline}\n`);
+  for (const sentence of data.sentences) console.log(`- ${redactString(sentence.text)}`);
 }
 
 async function main() {
@@ -557,6 +601,29 @@ async function main() {
         await syncAll();
         break;
 
+      case "refresh": {
+        const blocker = refreshBlocker();
+        if (blocker) throw new Error(blocker);
+        await syncAll();
+        break;
+      }
+
+      case "dashboard-data": {
+        const jsonIndex = args.indexOf("--json");
+        const asJson = jsonIndex !== -1;
+        if (asJson) args.splice(jsonIndex, 1);
+        const periodIndex = args.indexOf("--period");
+        const period = periodIndex === -1 ? undefined : args[periodIndex + 1];
+        if (periodIndex !== -1) args.splice(periodIndex, 2);
+        const section = args[1] || "summary";
+        if (!dashboardData.SECTIONS.includes(section) && section !== "all") {
+          console.error(`Usage: dashboard-data <${[...dashboardData.SECTIONS, "all"].join("|")}> [--json] [--period 7d|14d|30d|month]`);
+          process.exit(1);
+        }
+        printDashboardData(section, await dashboardData.section(section, { period }), asJson);
+        break;
+      }
+
       case "doctor":
       case "setup-status":
         pp(await readinessReport());
@@ -576,7 +643,7 @@ async function main() {
 
       default:
         console.error(`Unknown command: ${command}`);
-        console.log("Commands: dashboard, campaigns, adsets, ads, creatives, images, insights, targeting, ad-library, audiences, pixels, experiments, rules, leads, account, sync, doctor, strategy, draft-campaign");
+        console.log("Commands: dashboard, dashboard-data, campaigns, adsets, ads, creatives, images, insights, targeting, ad-library, audiences, pixels, experiments, rules, leads, account, sync, refresh, doctor, strategy, draft-campaign");
         process.exit(1);
     }
   } catch (err) {

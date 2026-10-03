@@ -175,7 +175,13 @@ async function readinessReport({ environment = process.env, fileEnv = readEnvFil
       "No live API writes run until Meta credentials are present.",
       "Carousel creatives are created without an ad; ads stay PAUSED until a human activates them.",
       "Credential values are redacted from every printed response, error and audit entry.",
+      "New ad sets send promoted_object (pixelId + customEventType such as PURCHASE or LEAD, or pageId for lead forms); conversion goals are refused without one.",
+      "New ad sets default targeting_automation.advantage_audience to 1 (Advantage+ audience on); pass advantageAudience: false to send 0.",
     ],
+    adSetDefaults: {
+      promotedObject: "pixelId + customEventType (PURCHASE, LEAD, COMPLETE_REGISTRATION, ADD_TO_CART, INITIATE_CHECKOUT, SUBSCRIBE, CONTACT) or pageId",
+      advantageAudience: 1,
+    },
     nextSteps: missing.length
       ? [
           "Create or confirm a Meta Business app/system user.",

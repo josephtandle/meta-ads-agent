@@ -256,14 +256,50 @@ async function listAdSets(campaignId = null, fields = ADSET_FIELDS) {
   return getPaginated(endpoint, { fields, limit: 100 });
 }
 
-async function createAdSet({ campaignId, name, dailyBudget, targeting, optimizationGoal, billingEvent = "IMPRESSIONS", bidStrategy = "LOWEST_COST_WITHOUT_CAP", destinationType = "WEBSITE", status = "PAUSED", startTime, endTime }, dryRun = false) {
+// Conversion events a pixel-based ad set can optimise for. Meta rejects
+// anything else, so the value is checked here before a request is built.
+const PROMOTED_EVENT_TYPES = ["PURCHASE", "LEAD", "COMPLETE_REGISTRATION", "ADD_TO_CART", "INITIATE_CHECKOUT", "SUBSCRIBE", "CONTACT"];
+// Optimisation goals that only work with a promoted_object (a pixel event or a
+// page for lead forms). Without one Meta returns an opaque error, so refuse early.
+const GOALS_NEEDING_PROMOTED_OBJECT = new Set(["OFFSITE_CONVERSIONS", "CONVERSIONS", "LEAD_GENERATION", "VALUE"]);
+
+/**
+ * Builds the promoted_object for an ad set from the friendly inputs:
+ *   pixelId + customEventType  -> { pixel_id, custom_event_type }  (Sales / Leads on a website)
+ *   pageId                     -> { page_id }                      (lead forms, messaging)
+ * Returns null when nothing was given; throws when the given value is invalid
+ * or when the optimisation goal needs one and none was supplied.
+ */
+function buildPromotedObject({ pixelId, customEventType, pageId, promotedObject, optimizationGoal } = {}) {
+  if (promotedObject && typeof promotedObject === "object") return promotedObject;
+  const eventType = customEventType === undefined || customEventType === null ? null : String(customEventType).trim().toUpperCase();
+  if (pixelId || eventType) {
+    if (!pixelId) throw new Error("adsets create: customEventType needs pixelId (the pixel that fires the event)");
+    if (!eventType) throw new Error(`adsets create: pixelId needs customEventType, one of ${PROMOTED_EVENT_TYPES.join(", ")}`);
+    if (!PROMOTED_EVENT_TYPES.includes(eventType)) {
+      throw new Error(`adsets create: customEventType "${customEventType}" is not supported; use one of ${PROMOTED_EVENT_TYPES.join(", ")}`);
+    }
+    return { pixel_id: String(pixelId), custom_event_type: eventType };
+  }
+  if (pageId) return { page_id: String(pageId) };
+  if (GOALS_NEEDING_PROMOTED_OBJECT.has(String(optimizationGoal || "").toUpperCase())) {
+    throw new Error(`adsets create: optimizationGoal ${optimizationGoal} needs a promoted object. Pass pixelId plus customEventType (${PROMOTED_EVENT_TYPES.join(", ")}) for website events, or pageId for lead forms.`);
+  }
+  return null;
+}
+
+async function createAdSet({ campaignId, name, dailyBudget, targeting, optimizationGoal, billingEvent = "IMPRESSIONS", bidStrategy = "LOWEST_COST_WITHOUT_CAP", destinationType = "WEBSITE", status = "PAUSED", startTime, endTime, pixelId, customEventType, pageId, promotedObject, advantageAudience }, dryRun = false) {
+  const promoted = buildPromotedObject({ pixelId, customEventType, pageId, promotedObject, optimizationGoal });
+  // Advantage+ audience is on for new ad sets unless the caller turns it off
+  // (advantageAudience: false). An explicit targeting_automation block wins.
+  const advantage = targeting?.targeting_automation || { advantage_audience: advantageAudience === false ? 0 : 1 };
   const body = {
     campaign_id: campaignId,
     name,
     daily_budget: Math.round(dailyBudget * 100),
     targeting: {
       ...targeting,
-      targeting_automation: targeting?.targeting_automation || { advantage_audience: 0 },
+      targeting_automation: advantage,
     },
     optimization_goal: optimizationGoal,
     billing_event: billingEvent,
@@ -271,6 +307,7 @@ async function createAdSet({ campaignId, name, dailyBudget, targeting, optimizat
     destination_type: destinationType,
     status,
   };
+  if (promoted) body.promoted_object = promoted;
   if (startTime) body.start_time = startTime;
   if (endTime) body.end_time = endTime;
   return apiCall(`/${ACCOUNT_ID}/adsets`, "POST", body, {}, { dryRun });
@@ -577,6 +614,30 @@ async function getAccountInsights(timeRange = "last_30d", breakdown = null) {
   return getPaginated(`/${ACCOUNT_ID}/insights`, params);
 }
 
+// One insights report for the dashboard cache: a level (account, campaign,
+// adset or ad) over a date preset, optionally one row per day (timeIncrement
+// 1). Read-only; every row carries date_start/date_stop so the data layer can
+// window it later without another request.
+const SERIES_FIELDS = "spend,impressions,reach,clicks,ctr,cpc,cpm,frequency,actions,action_values,cost_per_action_type,purchase_roas,date_start,date_stop";
+const LEVEL_FIELDS = {
+  account: "",
+  campaign: ",campaign_id,campaign_name",
+  adset: ",campaign_id,campaign_name,adset_id,adset_name",
+  ad: ",campaign_id,campaign_name,adset_id,adset_name,ad_id,ad_name",
+};
+
+async function getInsightsSeries({ level = "account", timeRange = "last_30d", timeIncrement = null } = {}) {
+  if (!(level in LEVEL_FIELDS)) throw new Error(`Unknown insights level: ${level}`);
+  const params = {
+    fields: SERIES_FIELDS + LEVEL_FIELDS[level],
+    level,
+    date_preset: timeRange,
+    limit: 500,
+  };
+  if (timeIncrement) params.time_increment = timeIncrement;
+  return getPaginated(`/${ACCOUNT_ID}/insights`, params);
+}
+
 async function getCampaignInsights(campaignId, timeRange = "last_30d", breakdowns = null) {
   const params = {
     fields: "campaign_name,spend,impressions,reach,clicks,ctr,cpc,cpm,actions,cost_per_action_type,frequency,purchase_roas",
@@ -690,7 +751,8 @@ module.exports = {
   listExperiments, createExperiment, getExperiment, getExperimentResults,
   listRules, getRule, createRule, updateRule, deleteRule,
   LEADFORM_LIST, LEAD_LIST, listLeadForms, getFormLeads, getLead,
-  getAccountInsights, getCampaignInsights, getAdSetInsights, getAdInsights,
+  getAccountInsights, getCampaignInsights, getAdSetInsights, getAdInsights, getInsightsSeries,
+  buildPromotedObject, PROMOTED_EVENT_TYPES,
   createAsyncReport, getAsyncReportStatus,
   listCustomAudiences, createCustomAudience, createLookalikeAudience,
   listPixels, getPixelStats,
