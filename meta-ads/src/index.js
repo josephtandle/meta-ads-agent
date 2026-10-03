@@ -53,6 +53,7 @@ const api = require("./api-client");
 const { buildCampaignDraft, saveCampaignDraft } = require("./copilot");
 const { readinessReport } = require("./readiness");
 const { checkDailyBudgetLimit, writeGate } = require("./recipe-helpers");
+const { redactString, redactValue } = require("./redact");
 const carousel = require("./carousel");
 const fs = require("fs");
 const path = require("path");
@@ -73,8 +74,10 @@ function writeCache(name, data) {
   fs.writeFileSync(path.join(CACHE_DIR, `${name}.json`), JSON.stringify(data, null, 2));
 }
 
+// Output boundary. The API client already redacts credentials at the source;
+// this is the belt to that braces so nothing printed can carry a token.
 function pp(data) {
-  console.log(JSON.stringify(data, null, 2));
+  console.log(JSON.stringify(redactValue(data), null, 2));
 }
 
 function strategyDate() {
@@ -237,6 +240,9 @@ async function main() {
   }
   const command = args[0] || "dashboard";
   const sub = args[1];
+  // A dry run never reaches a write endpoint (api-client short-circuits before
+  // fetch), so it is allowed with writes off. Live writes still need the gate.
+  const liveWriteGate = (action) => { if (!isDryRun) writeGate(action); };
 
   try {
     switch (command) {
@@ -255,7 +261,7 @@ async function main() {
             break;
           case "create":
             if (!args[2]) { console.error("Usage: campaigns create '<json>'"); process.exit(1); }
-            writeGate("campaigns create");
+            liveWriteGate("campaigns create");
             {
               const input = JSON.parse(args[2]);
               checkBudget(input, "campaigns create", ["dailyBudget", "lifetimeBudget"]);
@@ -265,18 +271,18 @@ async function main() {
           case "pause":
             if (!args[2]) { console.error("Usage: campaigns pause <id>"); process.exit(1); }
             if (!isDryRun) requireSpendConfirmation(args, "PAUSE", args[2]);
-            writeGate("campaigns pause");
+            liveWriteGate("campaigns pause");
             pp(await api.pauseCampaign(args[2]));
             break;
           case "activate":
             if (!args[2]) { console.error("Usage: campaigns activate <id>"); process.exit(1); }
             if (!isDryRun) requireSpendConfirmation(args, "ACTIVATE", args[2]);
-            writeGate("campaigns activate");
+            liveWriteGate("campaigns activate");
             pp(await api.activateCampaign(args[2]));
             break;
           case "update":
             if (!args[2] || !args[3]) { console.error("Usage: campaigns update <id> '<json>'"); process.exit(1); }
-            writeGate("campaigns update");
+            liveWriteGate("campaigns update");
             {
               const input = JSON.parse(args[3]);
               checkBudget(input, "campaigns update");
@@ -300,7 +306,7 @@ async function main() {
             break;
           case "create":
             if (!args[2]) { console.error("Usage: adsets create '<json>'"); process.exit(1); }
-            writeGate("adsets create");
+            liveWriteGate("adsets create");
             {
               const input = JSON.parse(args[2]);
               checkBudget(input, "adsets create", ["dailyBudget", "lifetimeBudget"]);
@@ -324,7 +330,7 @@ async function main() {
             break;
           case "create":
             if (!args[2]) { console.error("Usage: ads create '<json>'"); process.exit(1); }
-            writeGate("ads create");
+            liveWriteGate("ads create");
             pp(await api.createAd(JSON.parse(args[2])));
             break;
           default:
@@ -336,7 +342,7 @@ async function main() {
         switch (sub) {
           case "create":
             if (!args[2]) { console.error("Usage: creatives create '<json>'"); process.exit(1); }
-            writeGate("creatives create");
+            liveWriteGate("creatives create");
             pp(await api.createAdCreative(JSON.parse(args[2])));
             break;
           case "carousel": {
@@ -442,12 +448,12 @@ async function main() {
             break;
           case "create":
             if (!args[2]) { console.error("Usage: audiences create '<json>'"); process.exit(1); }
-            writeGate("audiences create");
+            liveWriteGate("audiences create");
             pp(await api.createCustomAudience(JSON.parse(args[2])));
             break;
           case "lookalike":
             if (!args[2]) { console.error("Usage: audiences lookalike '<json>'"); process.exit(1); }
-            writeGate("audiences lookalike");
+            liveWriteGate("audiences lookalike");
             pp(await api.createLookalikeAudience(JSON.parse(args[2])));
             break;
           default:
@@ -574,7 +580,7 @@ async function main() {
         process.exit(1);
     }
   } catch (err) {
-    console.error(`Error: ${err.message}`);
+    console.error(`Error: ${redactString(err.message)}`);
     process.exit(1);
   }
 }

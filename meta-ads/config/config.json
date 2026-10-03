@@ -12,6 +12,15 @@
     "META_ADS_MAX_DAILY_BUDGET_CENTS",
     "META_ADS_AUDIT_LOG_PATH"
   ],
+  "secretEnvVars": [
+    "META_ADS_ACCESS_TOKEN",
+    "META_ADS_APP_SECRET"
+  ],
+  "fields": {
+    "campaigns": "id,name,status,objective,daily_budget,lifetime_budget,budget_remaining,bid_strategy,start_time,stop_time,created_time",
+    "adsets": "id,name,status,effective_status,campaign_id,daily_budget,lifetime_budget,budget_remaining,bid_strategy,optimization_goal,billing_event,targeting,start_time,end_time",
+    "ads": "id,name,status,campaign_id,creative{id,title,body,image_url,thumbnail_url,url_tags,object_story_spec},insights{spend,impressions,clicks,ctr,cpc}"
+  },
   "defaultCurrency": "USD",
   "defaultTimeRange": "last_30d",
   "optimizationGoals": [

@@ -3,6 +3,7 @@ const path = require("path");
 const config = require("../config/config.json");
 const api = require("./api-client");
 const { activeBudgetCap } = require("./recipe-helpers");
+const { checkSrcIntegrity } = require("./integrity");
 
 const ENV_PATH = path.join(__dirname, "../.env");
 const ENV_PATHS = [ENV_PATH];
@@ -59,15 +60,24 @@ function isPermissionError(error) {
 async function runLiveChecks(apiClient, accountId, appId) {
   const timeoutMs = 5000;
   const checks = [];
+  // Identity of the connected ad account, from the Graph response only (never
+  // from env or .env values), so a student can confirm they wired the right one.
+  let connectedAccount = null;
 
   try {
     const account = await apiClient.apiCall(`/${accountId}`, "GET", null, {
-      fields: "name,account_status",
+      fields: "name,account_status,business",
     }, { timeoutMs });
     if (!String(account.id || accountId).startsWith("act_")) {
       checks.push(liveCheck("account_connection", "fail", "Meta returned an account ID that is not in act_ format."));
     } else {
       checks.push(liveCheck("account_connection", "pass", `Connected to ${account.name || accountId} (status ${account.account_status ?? "unknown"}).`));
+      connectedAccount = {
+        id: String(account.id || accountId),
+        name: typeof account.name === "string" ? account.name : null,
+        business: account.business && typeof account.business.name === "string" ? account.business.name : null,
+        accountStatus: account.account_status ?? null,
+      };
     }
   } catch (error) {
     checks.push(liveCheck("account_connection", "fail", `Meta rejected account verification: ${errorDetail(error)}`));
@@ -93,7 +103,7 @@ async function runLiveChecks(apiClient, accountId, appId) {
     checks.push(liveCheck("account_details", "fail", `Meta rejected account details verification: ${errorDetail(error)}`));
   }
 
-  return checks;
+  return { checks, account: connectedAccount };
 }
 
 function budgetCapStatus(environment = process.env, fileEnv = readEnvFile()) {
@@ -107,25 +117,33 @@ function budgetCapStatus(environment = process.env, fileEnv = readEnvFile()) {
   return { ...cap, writesEnabled: (environment.META_ADS_WRITES_ENABLED || fileEnv.META_ADS_WRITES_ENABLED) === "true", message };
 }
 
-async function readinessReport({ environment = process.env, fileEnv = readEnvFile(), apiClient = api } = {}) {
+async function readinessReport({ environment = process.env, fileEnv = readEnvFile(), apiClient = api, integrity = checkSrcIntegrity() } = {}) {
   const vars = envStatus(environment, fileEnv);
   const missing = vars.filter((item) => !item.present).map((item) => item.name);
   const credential = (name) => environment[name] || fileEnv[name];
-  const liveChecks = missing.length
-    ? [
-        liveCheck("account_connection", "skipped", "Credentials are incomplete, live API checks skipped."),
-        liveCheck("app_id", "skipped", "Credentials are incomplete, live API checks skipped."),
-        liveCheck("account_details", "skipped", "Credentials are incomplete, live API checks skipped."),
-      ]
+  const live = missing.length
+    ? {
+        checks: [
+          liveCheck("account_connection", "skipped", "Credentials are incomplete, live API checks skipped."),
+          liveCheck("app_id", "skipped", "Credentials are incomplete, live API checks skipped."),
+          liveCheck("account_details", "skipped", "Credentials are incomplete, live API checks skipped."),
+        ],
+        account: null,
+      }
     : await runLiveChecks(apiClient, credential("META_ADS_ACCOUNT_ID"), credential("META_ADS_APP_ID"));
+  const liveChecks = live.checks;
   const hasLiveFailure = liveChecks.some((check) => check.status === "fail");
+  const writesEnabled = (environment.META_ADS_WRITES_ENABLED || fileEnv.META_ADS_WRITES_ENABLED) === "true";
 
   return {
     agent: "meta-ads",
     status: missing.length
       ? "offline_copilot_only"
       : hasLiveFailure ? "connection_check_failed" : "ready_for_live_api",
+    writes: writesEnabled ? "on" : "off",
+    account: live.account,
     apiVersion: config.apiVersion,
+    integrity,
     budgetCap: budgetCapStatus(environment, fileEnv),
     env: vars,
     liveChecks,
@@ -156,6 +174,7 @@ async function readinessReport({ environment = process.env, fileEnv = readEnvFil
       "Budget increases require the account owner’s explicit approval.",
       "No live API writes run until Meta credentials are present.",
       "Carousel creatives are created without an ad; ads stay PAUSED until a human activates them.",
+      "Credential values are redacted from every printed response, error and audit entry.",
     ],
     nextSteps: missing.length
       ? [

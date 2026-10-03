@@ -14,7 +14,7 @@ module.exports.runRecipe = async function runRecipe(input = {}) {
   const insightsRow = firstDataRow(extractData(campaign?.insights || []));
   const spend = insightsRow ? formatCurrency(insightsRow.spend || 0) : "N/A";
 
-  if (readArg(input, ["confirmation"]) !== requiredConfirmation) {
+  if (readArg(input, ["confirmation", "confirm"]) !== requiredConfirmation) {
     return {
       status: "blocked",
       reply: [

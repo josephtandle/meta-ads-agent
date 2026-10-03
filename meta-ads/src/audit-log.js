@@ -1,10 +1,14 @@
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
+const { redactValue } = require("./redact");
 
 const ACCOUNT_ID = process.env.META_ADS_ACCOUNT_ID;
 const SECRET_KEYS = new Set(["access_token", "app_secret"]);
 
+// Drops credential keys and replaces image bytes with a digest. Credential
+// VALUES (token, app secret, paging URLs) are handled by redactValue, which
+// writeAudit applies on top of this so no caller can bypass it.
 function sanitize(value) {
   if (Array.isArray(value)) return value.map(sanitize);
   if (!value || typeof value !== "object") return value;
@@ -32,8 +36,8 @@ function writeAudit(action, request, result) {
     timestamp: new Date().toISOString(),
     action,
     accountId: ACCOUNT_ID,
-    request: sanitize(request),
-    result: sanitize(result),
+    request: redactValue(sanitize(request)),
+    result: redactValue(sanitize(result)),
   })}\n`);
 }
 

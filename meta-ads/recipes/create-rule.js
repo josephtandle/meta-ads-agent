@@ -1,13 +1,17 @@
 const api = require("../src/api-client");
 const { readArg, requireTextArg, writeGate } = require("../src/recipe-helpers");
 
+// Course material passes args.confirm; older callers pass args.confirmation.
+// Both are accepted, confirmation first. The exact phrase check is unchanged.
+const CONFIRM_KEYS = ["confirmation", "confirm"];
+
 module.exports.runRecipe = async function runRecipe(input = {}) {
   const name = requireTextArg(input, "name", "name");
   const dryRun = readArg(input, "dryRun", false) === true;
-  writeGate("rules create");
   if (!dryRun) {
+    writeGate("rules create");
     const expectedConfirmation = `CONFIRM RULE ${name}`;
-    if (readArg(input, "confirm") !== expectedConfirmation) {
+    if (readArg(input, CONFIRM_KEYS) !== expectedConfirmation) {
       throw new Error(`Rule creation requires confirm: ${expectedConfirmation}`);
     }
   }

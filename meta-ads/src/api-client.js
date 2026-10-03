@@ -35,6 +35,7 @@ const {
   throwConfiguredApiError,
 } = require("./api-client-helpers");
 const { writeAudit, sanitize } = require("./audit-log");
+const { redactError, redactValue } = require("./redact");
 const { RateLimiter } = require("./rate-limiter");
 const { checkDailyBudgetLimit, writeGate } = require("./recipe-helpers");
 const fs = require("fs");
@@ -43,6 +44,7 @@ const carousel = require("./carousel");
 const BASE = `${config.baseUrl}/${config.apiVersion}`;
 const TOKEN = process.env.META_ADS_ACCESS_TOKEN;
 const ACCOUNT_ID = process.env.META_ADS_ACCOUNT_ID;
+const FIELDS = config.fields || {};
 const rateLimiter = new RateLimiter();
 let dryRunEnabled = false;
 let dryRunCounter = 0;
@@ -58,6 +60,17 @@ function setDryRun(enabled) {
   dryRunEnabled = Boolean(enabled);
 }
 
+function isDryRun(dryRun) {
+  return dryRunEnabled || dryRun === true;
+}
+
+// Write gate for the helpers below. A dry run never reaches a write endpoint
+// (apiCall short-circuits before fetch), so it is allowed with writes off;
+// the live path stays exactly as strict as before.
+function liveWriteGate(action, dryRun) {
+  if (!isDryRun(dryRun)) writeGate(action);
+}
+
 function isRetryable(status, error) {
   return [429, 500, 502, 503].includes(status)
     || error?.is_transient === true
@@ -69,14 +82,18 @@ function checkCredentials() {
   if (!ACCOUNT_ID) throw new Error("META_ADS_ACCOUNT_ID not set in .env");
 }
 
-async function apiCall(endpoint, method = "GET", body = null, params = {}, options = {}) {
+// Raw request path. Returns the Graph API body as received so pagination can
+// read paging.next (which carries the access token). Nothing outside this
+// module may call it: every public entry point redacts before returning.
+async function requestJson(endpoint, method = "GET", body = null, params = {}, options = {}) {
   const isWrite = method.toUpperCase() !== "GET";
-  const useDryRun = isWrite && (dryRunEnabled || options.dryRun === true);
+  const useDryRun = isWrite && isDryRun(options.dryRun);
   const auditRequest = { endpoint, method, body, params };
 
   if (useDryRun) {
-    const result = { id: `dry_run_${++dryRunCounter}`, dryRun: true };
-    console.error(`Meta Ads dry run: ${JSON.stringify(sanitize(auditRequest))}`);
+    const request = redactValue(sanitize(auditRequest));
+    const result = { id: `dry_run_${++dryRunCounter}`, dryRun: true, request };
+    console.error(`Meta Ads dry run (nothing sent): ${JSON.stringify(request)}`);
     writeAudit(`${method} ${endpoint}`, auditRequest, { ...result, dryRun: true });
     return result;
   }
@@ -129,9 +146,17 @@ async function apiCall(endpoint, method = "GET", body = null, params = {}, optio
 
     throw new Error("Request failed after max retries");
   } catch (error) {
-    if (isWrite) writeAudit(`${method} ${endpoint}`, auditRequest, { error: error.message });
-    throw error;
+    // Error bodies can quote the request URL, token included. Redact before
+    // the message reaches the audit log or the caller.
+    const redacted = redactError(error);
+    if (isWrite) writeAudit(`${method} ${endpoint}`, auditRequest, { error: redacted.message });
+    throw redacted;
   }
+}
+
+// Public single-request entry point: same as requestJson, redacted.
+async function apiCall(endpoint, method = "GET", body = null, params = {}, options = {}) {
+  return redactValue(await requestJson(endpoint, method, body, params, options));
 }
 
 function cursorFromNextUrl(next, endpoint) {
@@ -160,14 +185,16 @@ async function getPaginated(endpoint, params = {}) {
   let lastPage = null;
 
   for (let page = 0; page < MAX_PAGINATION_PAGES; page++) {
-    const result = await apiCall(endpoint, "GET", null, pageParams);
+    // Raw page: the cursor is read from the unredacted paging.next URL here,
+    // then the merged result is redacted once before it leaves this module.
+    const result = await requestJson(endpoint, "GET", null, pageParams);
     if (!Array.isArray(result?.data)) {
       throw new Error("Malformed Meta collection response: expected a data array");
     }
     lastPage = result;
     allData.push(...result.data);
     const next = result?.paging?.next;
-    if (!next) return { ...lastPage, data: allData };
+    if (!next) return redactValue({ ...lastPage, data: allData });
     const cursor = cursorFromNextUrl(next, endpoint);
     if (seenCursors.has(cursor)) throw new Error("Pagination cursor cycle detected");
     seenCursors.add(cursor);
@@ -178,7 +205,13 @@ async function getPaginated(endpoint, params = {}) {
 
 // ── Campaign Management ──────────────────────────────────────────
 
-async function listCampaigns(fields = "id,name,status,objective,daily_budget,lifetime_budget,start_time,stop_time,created_time") {
+// Default field lists live in config/config.json ("fields") so they can be
+// reviewed and extended without touching code.
+const CAMPAIGN_FIELDS = FIELDS.campaigns || "id,name,status,objective,daily_budget,lifetime_budget,budget_remaining,bid_strategy,start_time,stop_time,created_time";
+const ADSET_FIELDS = FIELDS.adsets || "id,name,status,effective_status,campaign_id,daily_budget,lifetime_budget,budget_remaining,bid_strategy,optimization_goal,billing_event,targeting,start_time,end_time";
+const AD_FIELDS = FIELDS.ads || "id,name,status,campaign_id,creative{id,title,body,image_url,thumbnail_url,url_tags,object_story_spec},insights{spend,impressions,clicks,ctr,cpc}";
+
+async function listCampaigns(fields = CAMPAIGN_FIELDS) {
   return getPaginated(`/${ACCOUNT_ID}/campaigns`, {
     fields,
     limit: 100,
@@ -218,7 +251,7 @@ async function activateCampaign(campaignId, dryRun = false) {
 
 // ── Ad Set Management ────────────────────────────────────────────
 
-async function listAdSets(campaignId = null, fields = "id,name,status,effective_status,campaign_id,daily_budget,lifetime_budget,targeting,optimization_goal,bid_strategy,start_time,end_time") {
+async function listAdSets(campaignId = null, fields = ADSET_FIELDS) {
   const endpoint = campaignId ? `/${campaignId}/adsets` : `/${ACCOUNT_ID}/adsets`;
   return getPaginated(endpoint, { fields, limit: 100 });
 }
@@ -245,7 +278,7 @@ async function createAdSet({ campaignId, name, dailyBudget, targeting, optimizat
 
 // ── Ad Creative & Ads ────────────────────────────────────────────
 
-async function listAds(adSetId = null, fields = "id,name,status,campaign_id,creative{id,title,body,image_url,thumbnail_url,url_tags,object_story_spec},insights{spend,impressions,clicks,ctr,cpc}") {
+async function listAds(adSetId = null, fields = AD_FIELDS) {
   const endpoint = adSetId ? `/${adSetId}/ads` : `/${ACCOUNT_ID}/ads`;
   return getPaginated(endpoint, { fields, limit: 100 });
 }
@@ -375,7 +408,7 @@ async function listAdImages(fields = "hash,name,url,width,height,created_time") 
 
 async function updateBudget(objectId, dailyBudgetCents, { dryRun = false } = {}) {
   checkDailyBudgetLimit(dailyBudgetCents, "update budget");
-  writeGate("update budget");
+  liveWriteGate("update budget", dryRun);
   return apiCall(`/${objectId}`, "POST", { daily_budget: Number(dailyBudgetCents) }, {}, { dryRun });
 }
 
@@ -408,7 +441,7 @@ async function updateAdSetOptimizationGoal(adSetId, optimizationGoal, { dryRun =
       `update ad set optimization goal: "${optimizationGoal}" is not a recognised Meta optimization_goal`
     );
   }
-  writeGate("update ad set optimization goal");
+  liveWriteGate("update ad set optimization goal", dryRun);
   return apiCall(`/${adSetId}`, "POST", { optimization_goal: goal }, {}, { dryRun });
 }
 
@@ -454,7 +487,7 @@ async function createExperiment({ name, startTime, endTime, cells }, dryRun = fa
   if (!name || !startTime || !endTime || !Array.isArray(cells) || !cells.length) {
     throw new Error("Experiment name, startTime, endTime, and at least one cell are required");
   }
-  writeGate("experiments create");
+  liveWriteGate("experiments create", dryRun);
   return apiCall(`/${ACCOUNT_ID}/ad_studies`, "POST", {
     name,
     start_time: startTime,
@@ -497,7 +530,7 @@ async function getRule(ruleId, fields = "id,name,status,evaluation_spec,executio
 
 async function createRule({ name, evaluationSpec, executionSpec, scheduleSpec }, dryRun = false) {
   if (!name) throw new Error("Rule name is required");
-  writeGate("rules create");
+  liveWriteGate("rules create", dryRun);
   return apiCall(`/${ACCOUNT_ID}/adrules_library`, "POST", {
     name,
     evaluation_spec: stringifyRuleSpec(evaluationSpec, "evaluationSpec"),
@@ -507,12 +540,12 @@ async function createRule({ name, evaluationSpec, executionSpec, scheduleSpec },
 }
 
 async function updateRule(ruleId, updates, dryRun = false) {
-  writeGate("rules update");
+  liveWriteGate("rules update", dryRun);
   return apiCall(`/${ruleId}`, "POST", ruleUpdateBody(updates), {}, { dryRun });
 }
 
 async function deleteRule(ruleId, dryRun = false) {
-  writeGate("rules delete");
+  liveWriteGate("rules delete", dryRun);
   return apiCall(`/${ruleId}`, "DELETE", null, {}, { dryRun });
 }
 
@@ -646,7 +679,7 @@ async function getAccountInfo() {
 }
 
 module.exports = {
-  apiCall, setDryRun,
+  apiCall, setDryRun, redactValue,
   listCampaigns, getCampaign, createCampaign, updateCampaign, pauseCampaign, activateCampaign,
   listAdSets, createAdSet,
   listAds, createAdCreative, createAd, createCarouselCreative,
