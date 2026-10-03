@@ -1,0 +1,26 @@
+{
+  "id": "agent/meta-ads/policy-check",
+  "layer": "agent",
+  "owner": "meta-ads",
+  "title": "Check my ads against Meta's policies",
+  "tags": ["meta-ads", "policy", "compliance", "creative", "rejected"],
+  "phrases": [
+    "check my ads against meta's policies",
+    "will meta reject this ad",
+    "is this ad allowed on facebook",
+    "check ad copy for policy problems",
+    "make sure my instagram ad follows the rules",
+    "policy check this creative",
+    "does this ad break meta advertising standards",
+    "check this headline for meta compliance"
+  ],
+  "inputMode": "structured",
+  "requiredContext": [],
+  "outputMode": "text",
+  "fallbackPolicy": "worker_optional",
+  "safety": {
+    "destructive": false,
+    "rule": "Read only and offline. Uses the local cache for ids; only an id missing from the cache is read from Meta with a GET."
+  },
+  "handler": "./policy-check.js"
+}

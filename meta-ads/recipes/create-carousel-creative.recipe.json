@@ -20,7 +20,7 @@
   "fallbackPolicy": "worker_optional",
   "safety": {
     "destructive": false,
-    "rule": "Requires META_ADS_WRITES_ENABLED=true for a live run. Dry run is the default; pass dryRun:false to create. Creates a creative only, never an ad."
+    "rule": "Requires META_ADS_WRITES_ENABLED=true for a live run. Dry run is the default; pass dryRun:false to create. Creates a creative only, never an ad. Runs the Meta policy check first; a BLOCK is refused unless policyOverride holds a reason, which is audited."
   },
   "handler": "./create-carousel-creative.js"
 }

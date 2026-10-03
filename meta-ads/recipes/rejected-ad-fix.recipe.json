@@ -1,0 +1,25 @@
+{
+  "id": "agent/meta-ads/rejected-ad-fix",
+  "layer": "agent",
+  "owner": "meta-ads",
+  "title": "Fix an ad Meta rejected",
+  "tags": ["meta-ads", "policy", "rejected", "disapproved", "creative"],
+  "phrases": [
+    "meta rejected my ad",
+    "facebook disapproved my ad, how do i fix it",
+    "my instagram ad was rejected",
+    "why was my ad rejected",
+    "fix a rejected meta ad",
+    "ad not approved by meta",
+    "rewrite my ad so meta approves it"
+  ],
+  "inputMode": "structured",
+  "requiredContext": [],
+  "outputMode": "text",
+  "fallbackPolicy": "worker_optional",
+  "safety": {
+    "destructive": false,
+    "rule": "Read only and offline. Reads the local cache and the rejection text; drafts a fix and never sends anything to Meta."
+  },
+  "handler": "./rejected-ad-fix.js"
+}

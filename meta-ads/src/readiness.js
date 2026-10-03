@@ -4,9 +4,11 @@ const config = require("../config/config.json");
 const api = require("./api-client");
 const { activeBudgetCap } = require("./recipe-helpers");
 const { checkSrcIntegrity } = require("./integrity");
+const { standardsFreshness } = require("./policy-check");
 
 const ENV_PATH = path.join(__dirname, "../.env");
-const ENV_PATHS = [ENV_PATH];
+const FALLBACK_ENV_PATH = path.join(__dirname, "../../../.env");
+const ENV_PATHS = process.env.META_ADS_IGNORE_ENV_FILES === "1" ? [] : [ENV_PATH];
 
 function readEnvFile({ paths = ENV_PATHS, existsSync = fs.existsSync, readFileSync = fs.readFileSync } = {}) {
   const env = {};
@@ -117,7 +119,7 @@ function budgetCapStatus(environment = process.env, fileEnv = readEnvFile()) {
   return { ...cap, writesEnabled: (environment.META_ADS_WRITES_ENABLED || fileEnv.META_ADS_WRITES_ENABLED) === "true", message };
 }
 
-async function readinessReport({ environment = process.env, fileEnv = readEnvFile(), apiClient = api, integrity = checkSrcIntegrity() } = {}) {
+async function readinessReport({ environment = process.env, fileEnv = readEnvFile(), apiClient = api, integrity = checkSrcIntegrity(), policyGuide = standardsFreshness() } = {}) {
   const vars = envStatus(environment, fileEnv);
   const missing = vars.filter((item) => !item.present).map((item) => item.name);
   const credential = (name) => environment[name] || fileEnv[name];
@@ -144,6 +146,11 @@ async function readinessReport({ environment = process.env, fileEnv = readEnvFil
     account: live.account,
     apiVersion: config.apiVersion,
     integrity,
+    policyGuide,
+    warnings: [
+      ...(integrity && integrity.ok === false ? [integrity.message] : []),
+      ...(policyGuide && policyGuide.ok === false ? [policyGuide.message] : []),
+    ],
     budgetCap: budgetCapStatus(environment, fileEnv),
     env: vars,
     liveChecks,
@@ -159,6 +166,7 @@ async function readinessReport({ environment = process.env, fileEnv = readEnvFil
       "setup/readiness checks",
       "local JSON draft archive",
       "carousel creative previews (dry run)",
+      "Meta policy check of ad text (policy check, offline)",
     ],
     blockedUntilCredentials: [
       "account lookup",
@@ -175,6 +183,7 @@ async function readinessReport({ environment = process.env, fileEnv = readEnvFil
       "No live API writes run until Meta credentials are present.",
       "Carousel creatives are created without an ad; ads stay PAUSED until a human activates them.",
       "Credential values are redacted from every printed response, error and audit entry.",
+      "Ad text is checked against Meta's Advertising Standards before every create; a BLOCK is refused unless --policy-override \"<reason>\" is given, and the override is audited.",
       "New ad sets send promoted_object (pixelId + customEventType such as PURCHASE or LEAD, or pageId for lead forms); conversion goals are refused without one.",
       "New ad sets default targeting_automation.advantage_audience to 1 (Advantage+ audience on); pass advantageAudience: false to send 0.",
     ],

@@ -49,6 +49,12 @@
  *   node src/index.js experiments list|create|get|results - Manage A/B experiments
  *   node src/index.js rules list|get|create|update|delete [--confirm "CONFIRM RULE <name>"] - Manage automated rules
  *   node src/index.js leads forms|get|lead              - Retrieve lead forms and leads
+ *   node src/index.js policy check <file|'<json>'|creative-id|"text"> [--json] - Check ad text against Meta's ad policies (offline)
+ *   node src/index.js policy rules [--json]             - List the policy rule ids
+ *
+ * Every command that creates ad copy (ads create, creatives create, creatives
+ * carousel, draft-campaign) runs the policy check first. A BLOCK is refused
+ * unless --policy-override "<reason>" is passed; the override is audited.
  */
 
 const api = require("./api-client");
@@ -58,6 +64,7 @@ const { checkDailyBudgetLimit, writeGate } = require("./recipe-helpers");
 const { redactString, redactValue } = require("./redact");
 const carousel = require("./carousel");
 const dashboardData = require("./dashboard-data");
+const policy = require("./policy-check");
 const config = require("../config/config.json");
 const fs = require("fs");
 const path = require("path");
@@ -282,6 +289,7 @@ async function main() {
     args.splice(dryRunIndex, 1);
     api.setDryRun(true);
   }
+  const policyOverride = policy.takeOverrideArg(args);
   const command = args[0] || "dashboard";
   const sub = args[1];
   // A dry run never reaches a write endpoint (api-client short-circuits before
@@ -375,7 +383,18 @@ async function main() {
           case "create":
             if (!args[2]) { console.error("Usage: ads create '<json>'"); process.exit(1); }
             liveWriteGate("ads create");
-            pp(await api.createAd(JSON.parse(args[2])));
+            {
+              const input = JSON.parse(args[2]);
+              // An ad carries no text of its own: check the creative it uses.
+              const cached = input.creativeId ? policy.findCached(input.creativeId) : null;
+              const target = cached && cached.creative ? { creative: cached.creative, ...input } : input;
+              const report = policy.checkCreative(target);
+              if (!report.fieldsChecked.length && input.creativeId) {
+                console.error(`Meta policy check (ads create): creative ${input.creativeId} is not in the local cache, so its text was not checked here. It was checked when it was created with this agent; to check it again run: node src/index.js policy check ${input.creativeId}`);
+              }
+              policy.enforcePolicy({ action: "ads create", report, override: policyOverride, dryRun: isDryRun });
+              pp(await api.createAd(input));
+            }
             break;
           default:
             pp(await api.listAds());
@@ -387,7 +406,11 @@ async function main() {
           case "create":
             if (!args[2]) { console.error("Usage: creatives create '<json>'"); process.exit(1); }
             liveWriteGate("creatives create");
-            pp(await api.createAdCreative(JSON.parse(args[2])));
+            {
+              const input = JSON.parse(args[2]);
+              policy.enforcePolicy({ action: "creatives create", input, override: policyOverride, dryRun: isDryRun });
+              pp(await api.createAdCreative(input));
+            }
             break;
           case "carousel": {
             if (args[2] === "--example") {
@@ -398,6 +421,7 @@ async function main() {
             const loaded = carousel.loadCarouselSpec(args[2]);
             const { spec, warnings } = carousel.validateCarouselSpec(loaded);
             if (!isDryRun) writeGate("creatives carousel");
+            policy.enforcePolicy({ action: "creatives carousel", input: spec, override: policyOverride, dryRun: isDryRun });
             const result = await api.createCarouselCreative(spec, isDryRun);
             result.warnings = warnings;
             warnings.forEach((warning) => console.error(`Warning: ${warning}`));
@@ -625,9 +649,34 @@ async function main() {
       }
 
       case "doctor":
-      case "setup-status":
-        pp(await readinessReport());
+      case "setup-status": {
+        const report = await readinessReport();
+        for (const warning of report.warnings || []) console.error(`Warning: ${warning}`);
+        pp(report);
         break;
+      }
+
+      case "policy": {
+        const jsonIndex = args.indexOf("--json");
+        const asJson = jsonIndex !== -1;
+        if (asJson) args.splice(jsonIndex, 1);
+        if (sub === "rules") {
+          const rules = policy.listRules();
+          if (asJson) pp(rules);
+          else for (const rule of rules) console.log(`${rule.level.padEnd(5)}  ${rule.id}  ${rule.title}`);
+          break;
+        }
+        if (sub !== "check" || !args[2]) {
+          console.error("Usage: policy check <file.json|'<json>'|creative-id|\"ad text\"> [--json] | policy rules [--json]");
+          process.exit(1);
+        }
+        const resolved = await policy.resolvePolicyInput(args.slice(2).join(" "));
+        const report = policy.checkCreative(resolved.input);
+        if (asJson) pp({ source: resolved.source, ...report });
+        else console.log(`Checked: ${resolved.source}\n${redactString(policy.formatReport(report))}`);
+        process.exitCode = report.exitCode;
+        break;
+      }
 
       case "strategy":
         runStrategyCommand(sub, args.slice(2));
@@ -636,6 +685,13 @@ async function main() {
       case "draft-campaign": {
         if (!sub) { console.error("Usage: draft-campaign '<json>'"); process.exit(1); }
         const draft = buildCampaignDraft(JSON.parse(sub));
+        const checked = policy.enforcePolicy({ action: "draft-campaign", input: draft.creativeBrief, override: policyOverride, dryRun: true });
+        draft.policyCheck = {
+          status: checked.status,
+          findings: checked.findings.map((finding) => ({ level: finding.level, ruleId: finding.ruleId, phrase: finding.phrase, rewrite: finding.rewrite })),
+          specialCategories: checked.specialCategories,
+          ...(checked.overridden ? { overrideReason: checked.overrideReason } : {}),
+        };
         const filePath = saveCampaignDraft(draft);
         pp({ status: "draft_saved", filePath, draft });
         break;
@@ -643,12 +699,12 @@ async function main() {
 
       default:
         console.error(`Unknown command: ${command}`);
-        console.log("Commands: dashboard, dashboard-data, campaigns, adsets, ads, creatives, images, insights, targeting, ad-library, audiences, pixels, experiments, rules, leads, account, sync, refresh, doctor, strategy, draft-campaign");
+        console.log("Commands: dashboard, dashboard-data, campaigns, adsets, ads, creatives, images, insights, targeting, ad-library, audiences, pixels, experiments, rules, leads, account, sync, refresh, doctor, strategy, draft-campaign, policy");
         process.exit(1);
     }
   } catch (err) {
     console.error(`Error: ${redactString(err.message)}`);
-    process.exit(1);
+    process.exit(err.exitCode || 1);
   }
 }
 

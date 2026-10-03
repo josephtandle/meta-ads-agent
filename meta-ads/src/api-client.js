@@ -12,21 +12,19 @@
  */
 
 const p = require("path");
+
+// dotenv is optional: real environment variables work without it.
 let dotenv = null;
 try {
   dotenv = require("dotenv");
 } catch (error) {
   if (error.code !== "MODULE_NOT_FOUND") throw error;
 }
-if (dotenv) {
-  try {
-    dotenv.config({ path: p.join(__dirname, "../.env") });
-  } catch (error) {
-    if (error.code !== "MODULE_NOT_FOUND") throw error;
-    // dotenv is optional; real environment variables still work without it.
-  }
+// META_ADS_IGNORE_ENV_FILES=1 keeps tests and fixtures away from the real .env
+// files (the agent's own and the install root's). Process env always wins.
+if (dotenv && process.env.META_ADS_IGNORE_ENV_FILES !== "1") {
+  dotenv.config({ path: p.join(__dirname, "../.env") });
 }
-
 
 const config = require("../config/config.json");
 const {

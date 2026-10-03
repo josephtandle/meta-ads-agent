@@ -28,6 +28,7 @@ const { spawnSync } = require("child_process");
 const config = require("../config/config.json");
 const { redactValue, redactString } = require("./redact");
 const { activeBudgetCap } = require("./recipe-helpers");
+const policyCheck = require("./policy-check");
 
 const ROOT = path.join(__dirname, "..");
 // Test switches: META_ADS_DATA_DIR points the layer at another cache folder
@@ -839,6 +840,44 @@ function plannerCards(cache) {
   return cards;
 }
 
+// One card when cached ads carry text Meta is likely to reject or restrict.
+// Read-only: it runs the offline policy check over the cached creatives.
+function policyRiskCard(cache) {
+  let risky;
+  try {
+    risky = policyCheck.cachedAdRisks(undefined, cache.ads || []);
+  } catch {
+    return null;
+  }
+  if (!risky.length) return null;
+  const blocked = risky.filter((item) => item.status === "BLOCK");
+  const first = risky[0];
+  return card({
+    id: "policy-risk",
+    group: "fix",
+    title: `${risky.length} ad${risky.length === 1 ? " carries" : "s carry"} policy risk`,
+    what: blocked.length
+      ? `Rewrite the flagged lines in ${blocked.length} ad${blocked.length === 1 ? "" : "s"} before Meta rejects ${blocked.length === 1 ? "it" : "them"}.`
+      : "Check the flagged lines; they may limit delivery or need a special ad category.",
+    why: "The agent read the cached ad text against Meta's Advertising Standards. Rejected ads stop delivering, and repeated rejections can restrict the ad account.",
+    evidence: [
+      { label: "Ads that would be refused", value: blocked.length, format: "integer" },
+      { label: "Ads to check", value: risky.length - blocked.length, format: "integer" },
+      { label: "Rules hit", value: [...new Set(risky.flatMap((item) => item.ruleIds))].slice(0, 6).join(", "), format: "text" },
+    ],
+    expectedEffect: "Fewer rejections and a healthier ad account.",
+    risk: "low",
+    riskNote: "Reading only. Nothing changes until you edit and recreate the ad.",
+    nextStep: `Run node src/index.js policy check ${first.id} to see each phrase and a suggested rewrite.`,
+    command: null,
+    recipe: "recipes/policy-check",
+    source: "rules",
+    objectId: first.id,
+    level: "ad",
+    objectName: first.name,
+  });
+}
+
 async function improvements(options = {}) {
   const cache = loadCache(options.dataDir || DEFAULT_DATA_DIR);
   if (!cache.hasData || !cache.campaigns.length) return redactValue(emptyState("improvements", cache));
@@ -852,6 +891,8 @@ async function improvements(options = {}) {
     seenObjects.add(key);
     cards.push(item);
   }
+  const policyCard = policyRiskCard(cache);
+  if (policyCard) cards.push(policyCard);
   const order = ["stop", "scale", "fix", "watch"];
   cards.sort((a, b) => order.indexOf(a.group) - order.indexOf(b.group));
   const groups = order.map((key) => ({ key, ...GROUPS[key], cards: cards.filter((item) => item.group === key) }));

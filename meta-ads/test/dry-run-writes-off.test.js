@@ -33,6 +33,9 @@ async function run() {
     NODE_OPTIONS: `${process.env.NODE_OPTIONS || ""} --require=${JSON.stringify(fetchHookPath)}`.trim(),
   };
   delete env.META_ADS_WRITES_ENABLED;
+  // Never read the agent's or the workspace's real .env in this test: a live
+  // writes flag there would turn these dry runs into real write attempts.
+  env.META_ADS_IGNORE_ENV_FILES = "1";
   const runCli = (args) => spawnSync(process.execPath, [cli, ...args], { encoding: "utf8", env });
 
   const rule = JSON.stringify({ name: "Pause costly ad sets", evaluationSpec: {}, executionSpec: {}, scheduleSpec: {} });

@@ -1,0 +1,465 @@
+{
+  "version": 1,
+  "checkedOn": "2026-10-03",
+  "about": "Rules the Meta Ads agent uses to check ad text against Meta's Advertising Standards. Each rule has an id, a level (BLOCK = fix before running, WARN = check it), the section of policies/meta-advertising-standards.md it comes from, a plain explanation and a rewrite hint. Patterns are JavaScript regular expressions, matched case-insensitively unless the rule sets flags. To add a rule, copy one, give it a new id, and run: node src/index.js policy rules",
+  "personalSubject": "\\b(you|your|you're|youre|yours|yourself|are you|do you|have you)\\b",
+  "rules": [
+    {
+      "id": "personal-attributes-health",
+      "level": "BLOCK",
+      "type": "personal-attribute",
+      "section": "1. Personal attributes",
+      "title": "Says the reader has a health condition",
+      "attributes": ["\\b(anxiety|anxious|depress(ed|ion)?|diabet(es|ic)|overweight|obes(e|ity)|acne|adhd|cancer|chronic pain|insomnia|addict(ed|ion)?|eating disorders?|bipolar|ptsd|autis(m|tic)|arthritis|eczema|psoriasis|infertil(e|ity)|erectile|hair loss|balding|panic attacks?|mental illness|disabilit(y|ies)|disabled|high blood pressure|migraines?|ibs|stds?|hiv|herpes)\\b"],
+      "explain": "Meta rejects ads that say or hint that the reader has a health condition. \"You\" or \"your\" next to a condition reads as if you know their private health details.",
+      "rewrite": "Talk about the service, not the reader. Example: \"Anxiety support classes, Tuesday evenings\" instead of \"Are you struggling with anxiety?\"",
+      "source": "https://transparency.meta.com/policies/ad-standards/objectionable-content/privacy-violations-personal-attributes/"
+    },
+    {
+      "id": "personal-attributes-finances",
+      "level": "BLOCK",
+      "type": "personal-attribute",
+      "section": "1. Personal attributes",
+      "title": "Says the reader has money trouble",
+      "attributes": ["\\b(in debt|debts?|bad credit|poor credit|low credit|credit score|broke|bankrupt(cy)?|low[- ]income|can'?t pay|cannot afford|can'?t afford|behind on (bills|rent|payments)|unemployed|out of work|struggling financially)\\b"],
+      "explain": "Meta rejects ads that imply the reader is in debt, broke or has bad credit.",
+      "rewrite": "Describe the help you offer. Example: \"Debt planning sessions for small business owners\" instead of \"Drowning in your debt?\"",
+      "source": "https://transparency.meta.com/policies/ad-standards/objectionable-content/privacy-violations-personal-attributes/"
+    },
+    {
+      "id": "personal-attributes-age",
+      "level": "BLOCK",
+      "type": "personal-attribute",
+      "section": "1. Personal attributes",
+      "title": "Says how old the reader is",
+      "attributes": ["\\b(over (40|50|60|65|70)|under (18|21|25|30)|in your (20|30|40|50|60|70)s|(20|30|40|50|60|70)-somethings?|seniors?|retirees?|retired|millennials?|gen z|boomers?|teenagers?)\\b"],
+      "explain": "Meta rejects ads that say or hint at the reader's age, such as \"Are you over 50?\".",
+      "rewrite": "Name the group without \"you\". Example: \"Strength classes designed for people over 50\".",
+      "source": "https://transparency.meta.com/policies/ad-standards/objectionable-content/privacy-violations-personal-attributes/"
+    },
+    {
+      "id": "personal-attributes-religion",
+      "level": "BLOCK",
+      "type": "personal-attribute",
+      "section": "1. Personal attributes",
+      "title": "Says what the reader believes",
+      "attributes": ["\\b(christians?|catholics?|muslims?|islamic|jewish|jews|hindus?|buddhists?|sikhs?|mormons?|atheists?|evangelicals?)\\b"],
+      "explain": "Meta rejects ads that say or hint at the reader's religion, such as \"Are you Christian?\".",
+      "rewrite": "Describe the offer for the group. Example: \"A Christian book club meeting on Sundays\".",
+      "source": "https://transparency.meta.com/policies/ad-standards/objectionable-content/privacy-violations-personal-attributes/"
+    },
+    {
+      "id": "personal-attributes-sexuality-gender",
+      "level": "BLOCK",
+      "type": "personal-attribute",
+      "section": "1. Personal attributes",
+      "title": "Says the reader's sexual orientation or gender identity",
+      "attributes": ["\\b(gay|lesbian|bisexual|queer|lgbtq?\\+?|transgender|trans|non-binary|nonbinary)\\b"],
+      "explain": "Meta rejects ads that say or hint at the reader's sexual orientation or gender identity.",
+      "rewrite": "Describe the community or event instead. Example: \"LGBTQ+ founders meetup, first Friday of the month\".",
+      "source": "https://transparency.meta.com/policies/ad-standards/objectionable-content/privacy-violations-personal-attributes/"
+    },
+    {
+      "id": "personal-attributes-race-ethnicity",
+      "level": "BLOCK",
+      "type": "personal-attribute",
+      "section": "1. Personal attributes",
+      "title": "Says the reader's race or ethnicity",
+      "attributes": ["\\b(african americans?|asians?|hispanics?|latin[oax]s?|indigenous|native americans?|arabs?|black (women|men|people|singles|community|owned)|white (women|men|people))\\b"],
+      "explain": "Meta rejects ads that say or hint at the reader's race or ethnicity.",
+      "rewrite": "Describe the offer for the community without \"you\". Example: \"Grants for Latina-owned small businesses\".",
+      "source": "https://transparency.meta.com/policies/ad-standards/objectionable-content/privacy-violations-personal-attributes/"
+    },
+    {
+      "id": "personal-attributes-criminal-record",
+      "level": "BLOCK",
+      "type": "personal-attribute",
+      "section": "1. Personal attributes",
+      "title": "Says the reader has a criminal record",
+      "attributes": ["\\b(criminal record|felon(y|ies|s)?|convicted|convictions?|arrest(ed)?|dui|dwi|jail|prison|parole|probation)\\b"],
+      "explain": "Meta rejects ads that say or hint that the reader has been arrested or convicted.",
+      "rewrite": "Describe the service. Example: \"Record expungement help, free first call\".",
+      "source": "https://transparency.meta.com/policies/ad-standards/objectionable-content/privacy-violations-personal-attributes/"
+    },
+    {
+      "id": "guaranteed-results",
+      "level": "BLOCK",
+      "type": "pattern",
+      "section": "3. Guaranteed or unrealistic results",
+      "title": "Promises a guaranteed result",
+      "patterns": [
+        "(?<!money[- ]back\\s)(?<!satisfaction\\s)(?<!refund\\s)\\bguarantee(d|s)?\\b(?!\\s+(refund|money[- ]back))",
+        "\\b100%\\s*(results|success|effective|guaranteed|cure)\\b",
+        "\\bworks every time\\b",
+        "\\b(never|can'?t|cannot) fail\\b",
+        "\\b(permanent|instant) results\\b"
+      ],
+      "explain": "Meta treats promised results as misleading because no one can guarantee how a person will respond. A money-back guarantee is fine; a results guarantee is not.",
+      "rewrite": "Say what people get, not what is guaranteed. Example: \"Join a 7-day guided breathing course\" instead of \"Feel better in 7 days, guaranteed\".",
+      "source": "https://transparency.meta.com/policies/ad-standards/deceptive-content/prohibited-commercial-practices/"
+    },
+    {
+      "id": "fast-results-claim",
+      "level": "WARN",
+      "type": "pattern",
+      "section": "2. Health and wellness claims",
+      "title": "Promises results within a short time",
+      "patterns": ["\\b(in (just |only )?\\d+ (days?|hours?|weeks?|minutes?)|overnight|in no time|in record time)\\b"],
+      "explain": "A short time frame next to a result (feel better, lose weight, earn) can read as an unrealistic promise. Fine for a course length or a delivery time.",
+      "rewrite": "Make the time about the offer, not the outcome. Example: \"A 7-day course\" instead of \"Feel better in 7 days\".",
+      "source": "https://transparency.meta.com/policies/ad-standards/restricted-goods-services/health-wellness/"
+    },
+    {
+      "id": "income-claims",
+      "level": "BLOCK",
+      "type": "pattern",
+      "section": "3. Guaranteed or unrealistic results, income claims",
+      "title": "Promises income or quick money",
+      "patterns": [
+        "\\b(make|earn|making|earning|generate|bring in|pull in)\\s+(up to\\s+|over\\s+)?\\$?\\d[\\d,.]*\\s*k?\\+?\\s*(dollars\\s*)?(a|per|every|each|/)\\s*(day|week|month|year|hour|mo|wk|yr)\\b",
+        "\\b(six|6|seven|7|five|5)[- ]figures?\\b",
+        "\\bpassive income\\b",
+        "\\bget rich\\b",
+        "\\bquit your (day )?job\\b",
+        "\\bfinancial freedom\\b",
+        "\\breplace your (income|salary)\\b",
+        "\\b(double|triple|10x) your (income|money|salary|earnings)\\b",
+        "\\bmake money (from home|online|fast|while you sleep)\\b",
+        "\\bwhile you sleep\\b"
+      ],
+      "explain": "Meta rejects income promises and get-rich-quick claims as deceptive.",
+      "rewrite": "Describe the skill or service. Example: \"Learn how to price your services, 4-week course\" instead of \"Make $10,000 a month from home\".",
+      "source": "https://transparency.meta.com/policies/ad-standards/deceptive-content/prohibited-commercial-practices/"
+    },
+    {
+      "id": "investment-returns",
+      "level": "BLOCK",
+      "type": "pattern",
+      "section": "3. Guaranteed or unrealistic results, income claims",
+      "title": "Promises investment returns",
+      "patterns": [
+        "\\bguaranteed (returns?|profits?|income)\\b",
+        "\\brisk[- ]free (investment|returns?|profits?|trading)\\b",
+        "\\b\\d+(\\.\\d+)?%\\s*(monthly|weekly|daily|annual)?\\s*(returns?|roi|profits?)\\b"
+      ],
+      "explain": "Meta rejects ads that promise investment returns or say an investment has no risk.",
+      "rewrite": "Explain what the product is and link to the risks. Example: \"See how our managed fund works\".",
+      "source": "https://transparency.meta.com/policies/ad-standards/deceptive-content/prohibited-commercial-practices/"
+    },
+    {
+      "id": "false-urgency",
+      "level": "WARN",
+      "type": "pattern",
+      "section": "4. Time pressure and false urgency",
+      "title": "Pushes the reader with time pressure",
+      "patterns": ["\\b(hurry|act (now|fast)|last chance|limited time( only)?|ends (tonight|today|at midnight|soon)|only \\d+ (spots?|seats?|places?|left|remaining)|(spots?|seats?) (are )?(filling|going) fast|before it'?s too late|don'?t miss out|today only|while (stocks?|supplies) last|expires (tonight|today|in \\d+ (hours?|minutes?)))\\b"],
+      "explain": "Real deadlines are fine. Fake or repeating ones are deceptive, and pressure words can make Meta show the ad less.",
+      "rewrite": "Give the real date. Example: \"Enrolment closes 15 October\" instead of \"Hurry, ends tonight!\"",
+      "source": "https://transparency.meta.com/policies/ad-standards/deceptive-content/prohibited-commercial-practices/"
+    },
+    {
+      "id": "before-after",
+      "level": "WARN",
+      "type": "pattern",
+      "section": "2. Health and wellness claims, before/after images",
+      "title": "Mentions before and after results",
+      "patterns": ["\\bbefore\\s*(and|&|/|-)\\s*after\\b"],
+      "explain": "Before/after images are a common rejection for weight loss, fitness and skincare. They are only allowed for some cosmetic procedures, shown to people 18 and over.",
+      "rewrite": "Use one photo of the product in real use, or a customer's words. Example: \"Here is what Sarah said after her third session\".",
+      "source": "https://transparency.meta.com/policies/ad-standards/restricted-goods-services/health-wellness/"
+    },
+    {
+      "id": "negative-self-image",
+      "level": "BLOCK",
+      "type": "pattern",
+      "section": "2. Health and wellness claims, body image",
+      "title": "Makes people feel bad about their body",
+      "patterns": [
+        "\\btired of (your|being|looking) (fat|ugly|old|overweight|wrinkl\\w*|flabby|bald)\\b",
+        "\\bhate (your (body|belly|face|skin|weight)|how you look)\\b",
+        "\\bembarrass(ed|ing) (by|about) your\\b",
+        "\\b(muffin top|love handles|flabby|belly fat|bingo wings|double chin)\\b",
+        "\\b(you look|you feel|feeling) (fat|ugly|old|unattractive)\\b",
+        "\\bfix your (body|face|flaws)\\b"
+      ],
+      "explain": "Meta rejects ads that shame people about how they look or point at body parts negatively.",
+      "rewrite": "Speak to the goal, not the flaw. Example: \"Feel strong with three short workouts a week\".",
+      "source": "https://transparency.meta.com/policies/ad-standards/restricted-goods-services/health-wellness/"
+    },
+    {
+      "id": "cure-claims",
+      "level": "BLOCK",
+      "type": "pattern",
+      "section": "2. Health and wellness claims",
+      "title": "Claims to cure a disease",
+      "patterns": [
+        "\\b(cures?|cured|heals?|reverses?|eliminates?)\\s+(your\\s+)?(diabetes|cancer|autism|hiv|aids|arthritis|alzheimer'?s|dementia|depression|anxiety|adhd|heart disease)\\b",
+        "\\bmiracle (cure|pill|drug|treatment)\\b"
+      ],
+      "explain": "Meta rejects claims to cure diseases, especially ones without a known cure.",
+      "rewrite": "Describe the support you offer. Example: \"Nutrition coaching for people managing diabetes\".",
+      "source": "https://transparency.meta.com/policies/ad-standards/restricted-goods-services/health-wellness/"
+    },
+    {
+      "id": "weight-loss-claims",
+      "level": "WARN",
+      "type": "pattern",
+      "section": "2. Health and wellness claims",
+      "title": "Weight loss claim",
+      "patterns": [
+        "\\b(lose|drop|shed|burn)\\s+(up to\\s+)?\\d+\\s*(lbs?|pounds|kg|kilos?|kilograms|sizes?)\\b",
+        "\\b(melt|burn) (away )?(belly )?fat\\b",
+        "\\bfat[- ]burn(er|ing)\\b"
+      ],
+      "explain": "Weight loss ads must target 18+ only, state a realistic time frame and avoid miracle claims.",
+      "rewrite": "Lead with the routine, not the number. Example: \"A 12-week coached plan for healthy eating\". Set the ad set to 18+.",
+      "source": "https://transparency.meta.com/policies/ad-standards/restricted-goods-services/health-wellness/"
+    },
+    {
+      "id": "sensational-clickbait",
+      "level": "WARN",
+      "type": "pattern",
+      "section": "8. Sensational and low-quality content",
+      "title": "Clickbait or sensational wording",
+      "patterns": ["\\b(you won'?t believe|shocking|doctors hate|one (weird|simple|strange) trick|they don'?t want you to know|jaw[- ]dropping|mind[- ]blowing|what happens next|this changes everything)\\b"],
+      "explain": "Meta rejects or limits ads that use sensational language to bait clicks.",
+      "rewrite": "Say plainly what the person will find. Example: \"See the 3-step method we use with clients\".",
+      "source": "https://transparency.meta.com/policies/ad-standards/restricted-goods-services/health-wellness/"
+    },
+    {
+      "id": "unsubstantiated-claims",
+      "level": "WARN",
+      "type": "pattern",
+      "section": "7. Misleading claims",
+      "title": "Claim that needs proof",
+      "patterns": ["(#\\s?1\\b|\\bnumber one\\b|\\bbest in the (world|country|industry)\\b|\\bclinically (proven|tested)\\b|\\bscientifically proven\\b|\\bdoctor[- ]recommended\\b|\\bfda[- ]approved\\b|\\bno side effects\\b|\\b100% (safe|natural)\\b)"],
+      "explain": "Superlatives and medical or scientific claims must be true and provable, with the proof on the landing page.",
+      "rewrite": "Keep only what you can prove and say where it comes from. Example: \"Rated 4.9 by 212 customers on Google\".",
+      "source": "https://transparency.meta.com/policies/ad-standards/deceptive-content/prohibited-commercial-practices/"
+    },
+    {
+      "id": "fake-ui-or-prize",
+      "level": "BLOCK",
+      "type": "pattern",
+      "section": "8. Sensational and low-quality content",
+      "title": "Fake prize or fake button",
+      "patterns": ["\\b(you'?ve (won|been selected)|congratulations,? you|claim your (prize|reward)|click (play|the play button)|tap to unlock|you are the \\d+(st|nd|rd|th) visitor)\\b"],
+      "explain": "Meta rejects fake prizes, fake buttons and wording that tricks people into clicking.",
+      "rewrite": "State the real offer. Example: \"Get 20% off your first order\".",
+      "source": "https://transparency.meta.com/policies/ad-standards/deceptive-content/prohibited-commercial-practices/"
+    },
+    {
+      "id": "profanity",
+      "level": "BLOCK",
+      "type": "pattern",
+      "section": "9. Prohibited content",
+      "title": "Profanity",
+      "patterns": ["\\b(fuck\\w*|shit\\w*|bullshit|bitch\\w*|asshole|bastard|dickhead|damn|wtf|motherf\\w*)\\b"],
+      "explain": "Meta rejects ads with profanity, even mild or partly hidden.",
+      "rewrite": "Use a plain word with the same energy. Example: \"Stop wasting hours on admin\".",
+      "source": "https://transparency.meta.com/policies/ad-standards/objectionable-content/profanity/"
+    },
+    {
+      "id": "low-quality-formatting",
+      "level": "WARN",
+      "type": "pattern",
+      "flags": "",
+      "skipFields": ["callToAction", "link"],
+      "section": "8. Sensational and low-quality content",
+      "title": "Shouting: all caps or piles of punctuation",
+      "patterns": ["[!?]{3,}", "\\b[A-Z]{3,}(?:\\s+[A-Z]{3,}){2,}\\b"],
+      "explain": "Ads in ALL CAPS or with !!! look like spam and get shown less.",
+      "rewrite": "Write in normal sentence case with one exclamation mark at most.",
+      "source": "https://transparency.meta.com/policies/ad-standards/"
+    },
+    {
+      "id": "lead-sensitive-data",
+      "level": "WARN",
+      "type": "pattern",
+      "section": "10. Landing page requirements",
+      "title": "Asks for sensitive personal data",
+      "patterns": ["\\b(social security( number)?|ssn|passport number|bank account (number|details)|credit card (number|details)|card number|password|pin code|medical history|criminal history)\\b"],
+      "explain": "Lead forms and ads must not ask for ID numbers, bank or card details, passwords, health or criminal history without Meta's permission.",
+      "rewrite": "Ask only for name, email and phone, and collect anything sensitive later, securely.",
+      "source": "https://transparency.meta.com/policies/ad-standards/"
+    },
+    {
+      "id": "crisis-exploitation",
+      "level": "WARN",
+      "type": "pattern",
+      "section": "9. Prohibited content",
+      "title": "Uses a crisis or disaster to sell",
+      "patterns": ["\\b(pandemic|covid(-19)?|coronavirus|earthquake|hurricane|wildfire|war in \\w+|tragedy)\\b"],
+      "explain": "Meta rejects ads that use a crisis, disaster or tragedy for commercial gain.",
+      "rewrite": "Remove the crisis reference and sell on the offer itself.",
+      "source": "https://transparency.meta.com/policies/ad-standards/restricted-goods-services/commercial-exploitation-of-crises-and-controversial-events/"
+    },
+    {
+      "id": "restricted-supplements",
+      "level": "WARN",
+      "type": "pattern",
+      "section": "6. Restricted goods and services",
+      "title": "Supplements or weight loss products",
+      "patterns": ["\\b(supplements?|capsules?|diet pills?|gummies|detox|cleanse|keto pills?|weight loss (pills?|products?|shakes?)|appetite suppress\\w*|testosterone boosters?)\\b"],
+      "explain": "Supplements and weight loss products are allowed only for people 18 and over, with no miracle claims.",
+      "rewrite": "Set the ad set to 18+ and describe the product plainly. Example: \"Daily vitamin D, 60 capsules\".",
+      "source": "https://transparency.meta.com/policies/ad-standards/restricted-goods-services/health-wellness/"
+    },
+    {
+      "id": "restricted-alcohol",
+      "level": "WARN",
+      "type": "pattern",
+      "section": "6. Restricted goods and services",
+      "title": "Alcohol",
+      "patterns": ["\\b(beer|wines?|vodka|whiske?y|gin|rum|tequila|cocktails?|liquor|brewery|winery|happy hour)\\b"],
+      "explain": "Alcohol ads must follow local law and target people of legal drinking age (18+ at least).",
+      "rewrite": "Set the ad set age to your country's legal drinking age and avoid linking drinking to success or health.",
+      "source": "https://transparency.meta.com/policies/ad-standards/restricted-goods-services/alcohol/"
+    },
+    {
+      "id": "restricted-dating",
+      "level": "WARN",
+      "type": "pattern",
+      "section": "6. Restricted goods and services",
+      "title": "Dating",
+      "patterns": ["\\b(dating|singles near|find (a|your) (date|partner|match)|hook ?ups?|meet singles)\\b"],
+      "explain": "Dating ads need Meta's written permission first.",
+      "rewrite": "Apply for dating ad permission in Business Help before running this.",
+      "source": "https://transparency.meta.com/policies/ad-standards/restricted-goods-services/dating-ads/"
+    },
+    {
+      "id": "restricted-gambling",
+      "level": "WARN",
+      "type": "pattern",
+      "section": "6. Restricted goods and services",
+      "title": "Gambling",
+      "patterns": ["\\b(casino|betting|bet now|sportsbook|poker|slot machines?|online slots|jackpot|lottery|wager)\\b"],
+      "explain": "Gambling ads need Meta's written permission and 18+ targeting.",
+      "rewrite": "Apply for gambling ad permission before running this, or remove the gambling reference.",
+      "source": "https://transparency.meta.com/policies/ad-standards/restricted-goods-services/gambling-games/"
+    },
+    {
+      "id": "restricted-crypto",
+      "level": "WARN",
+      "type": "pattern",
+      "section": "6. Restricted goods and services",
+      "title": "Crypto or trading",
+      "patterns": ["\\b(crypto(currency|currencies)?|bitcoin|btc|ethereum|nfts?|altcoins?|token sale|defi|forex)\\b"],
+      "explain": "Crypto trading, exchanges and similar products need Meta's written permission.",
+      "rewrite": "Apply for crypto ad permission before running this, or remove the reference.",
+      "source": "https://transparency.meta.com/policies/ad-standards/restricted-goods-services/cryptocurrency-products-and-services/"
+    },
+    {
+      "id": "restricted-pharma",
+      "level": "WARN",
+      "type": "pattern",
+      "section": "6. Restricted goods and services",
+      "title": "Drugs, pharmacy or addiction treatment",
+      "patterns": ["\\b(prescription|pharmacy|ozempic|wegovy|semaglutide|tirzepatide|viagra|cialis|cbd|cannabis|marijuana|thc|kratom|rehab|addiction treatment)\\b"],
+      "explain": "Prescription drugs, pharmacies, cannabis and addiction treatment need certification (for example LegitScript) or are not allowed.",
+      "rewrite": "Check the certification you need before running this, or remove the reference.",
+      "source": "https://transparency.meta.com/policies/ad-standards/restricted-goods-services/drugs-pharmaceuticals/"
+    },
+    {
+      "id": "prohibited-tobacco-vape",
+      "level": "BLOCK",
+      "type": "pattern",
+      "section": "6. Restricted goods and services (not allowed)",
+      "title": "Tobacco, vapes or nicotine",
+      "patterns": ["\\b(cigarettes?|cigars?|vapes?|vaping|e-?cig\\w*|nicotine|tobacco|juul|hookah|shisha)\\b"],
+      "explain": "Meta does not allow ads for tobacco, vapes or nicotine products.",
+      "rewrite": "Remove the product. Quit-smoking programmes may be allowed if they do not show the product.",
+      "source": "https://transparency.meta.com/policies/ad-standards/restricted-goods-services/tobacco-related-products/"
+    },
+    {
+      "id": "prohibited-weapons",
+      "level": "BLOCK",
+      "type": "pattern",
+      "section": "6. Restricted goods and services (not allowed)",
+      "title": "Weapons, ammunition or explosives",
+      "patterns": ["(?<!(glue|nail|heat|spray|massage|staple|water|caulk) )\\b(guns?|firearms?|rifles?|pistols?|ammo|ammunition|explosives?)\\b"],
+      "explain": "Meta does not allow ads that sell weapons, ammunition or explosives.",
+      "rewrite": "Remove the weapon reference. Safety training courses may be allowed if they sell no weapons.",
+      "source": "https://transparency.meta.com/policies/ad-standards/restricted-goods-services/weapons-ammunitions-explosives/"
+    },
+    {
+      "id": "prohibited-financial-products",
+      "level": "BLOCK",
+      "type": "pattern",
+      "section": "6. Restricted goods and services (not allowed)",
+      "title": "Payday loans or other banned money products",
+      "patterns": ["\\b(payday loans?|cash advance|paycheck advance|binary options?|bail bonds?|short[- ]term loans?)\\b"],
+      "explain": "Meta does not allow payday loans, short-term loans of 90 days or less, bail bonds or binary options.",
+      "rewrite": "Remove the product. Longer-term loans may be allowed under the Credit special category.",
+      "source": "https://transparency.meta.com/policies/ad-standards/restricted-goods-services/financial-services/"
+    },
+    {
+      "id": "landing-page-https",
+      "level": "WARN",
+      "type": "link",
+      "section": "10. Landing page requirements",
+      "title": "Landing page is not https",
+      "patterns": ["^http://"],
+      "explain": "Pages without https look unsafe, and browsers may warn people away.",
+      "rewrite": "Use the https:// version of the link.",
+      "source": "https://transparency.meta.com/policies/ad-standards/"
+    },
+    {
+      "id": "landing-page-placeholder",
+      "level": "WARN",
+      "type": "link",
+      "section": "10. Landing page requirements",
+      "title": "Landing page link is still a placeholder",
+      "patterns": ["FILL_IN", "example\\.com", "<[^>]+>"],
+      "explain": "The link must go to a working page that matches the ad. A placeholder link gets the ad rejected.",
+      "rewrite": "Put the real page address in the link field.",
+      "source": "https://transparency.meta.com/policies/ad-standards/"
+    }
+  ],
+  "specialCategories": [
+    {
+      "id": "special-category-housing",
+      "category": "HOUSING",
+      "level": "WARN",
+      "section": "5. Special Ad Categories",
+      "title": "Looks like a housing offer",
+      "patterns": ["\\b((apartments?|condos?|homes?|houses?|flats?|villas?|rooms?|propert(y|ies)|townhouses?)\\s+(for (rent|sale|lease)|to (rent|let))|for rent|for lease|real estate|realtors?|mortgages?|home loans?|homebuyers?|first[- ]time buyers?|\\d+[- ]?(bed(room)?s?|br)|open house|property listings?)\\b"],
+      "explain": "Housing ads (homes for sale or rent, mortgages, real estate) must be declared as the Housing special ad category, which limits targeting.",
+      "rewrite": "When you create the campaign, set special_ad_categories to [\"HOUSING\"]. Keep the copy the same.",
+      "source": "https://www.facebook.com/business/help/298000447747885"
+    },
+    {
+      "id": "special-category-employment",
+      "category": "EMPLOYMENT",
+      "level": "WARN",
+      "section": "5. Special Ad Categories",
+      "title": "Looks like a job offer",
+      "patterns": ["\\b(we'?re hiring|now hiring|hiring now|job (openings?|opportunit(y|ies)|vacanc(y|ies)|fair)|vacanc(y|ies)|join our team|apply (now )?for (the|this|our) (role|position|job)|open (roles?|positions?)|careers? at|recruiting|internships?|(full|part)[- ]time (role|position|job)|salary)\\b"],
+      "explain": "Job ads must be declared as the Employment special ad category, which limits targeting.",
+      "rewrite": "When you create the campaign, set special_ad_categories to [\"EMPLOYMENT\"].",
+      "source": "https://www.facebook.com/business/help/298000447747885"
+    },
+    {
+      "id": "special-category-credit",
+      "category": "FINANCIAL_PRODUCTS_SERVICES",
+      "level": "WARN",
+      "section": "5. Special Ad Categories",
+      "title": "Looks like a credit or financing offer",
+      "patterns": ["\\b(credit cards?|personal loans?|business loans?|car loans?|auto loans?|student loans?|loans?|line of credit|financing available|0% (apr|interest|financing)|buy now,? pay later|bnpl|pay in \\d+ (installments|instalments)|low apr)\\b"],
+      "explain": "Credit and financing offers must be declared as the Financial products and services special ad category (older accounts call it Credit), which limits targeting.",
+      "rewrite": "When you create the campaign, set special_ad_categories to [\"FINANCIAL_PRODUCTS_SERVICES\"] (or [\"CREDIT\"] on older API versions).",
+      "source": "https://www.facebook.com/business/help/298000447747885"
+    },
+    {
+      "id": "special-category-politics",
+      "category": "ISSUES_ELECTIONS_POLITICS",
+      "level": "WARN",
+      "section": "5. Special Ad Categories",
+      "title": "Looks like a political or social issue ad",
+      "patterns": ["\\b(vote|voting|voters?|elections?|candidates?|ballot|referendum|senators?|congress(man|woman)?|parliament|political|petition|climate (change|crisis)|immigration|abortion|gun (control|rights)|civil rights)\\b"],
+      "explain": "Ads about elections, politics or social issues need ad account authorization, a \"Paid for by\" label and the Social issues, elections or politics category.",
+      "rewrite": "Complete Meta's ad authorization, then set special_ad_categories to [\"ISSUES_ELECTIONS_POLITICS\"].",
+      "source": "https://transparency.meta.com/policies/ad-standards/SIEP-advertising/SIEP/"
+    }
+  ]
+}

@@ -10,11 +10,15 @@ Reporting operations are read-only. Listing campaigns, ad sets, or ads, retrievi
 
 Every live write requires `META_ADS_WRITES_ENABLED=true` in the installed agent's environment. Keep it unset for read-only use. Where a handler requires an exact confirmation phrase, obtain approval for that specific action first and then provide the phrase returned by the handler. The phrase is a technical backstop, not approval by itself.
 
-The shipped recipes are: account-insights, activate-campaign, async-insights-report, audit-account, campaign-insights, create-experiment, create-rule, create-carousel-creative, get-campaign, get-dashboard, get-leads, list-ads, list-adsets, list-campaigns, list-experiments, list-lead-forms, list-rules, pause-campaign, plan-budget, search-ad-library, search-targeting, status, update-budget, and upload-ad-image.
+The shipped recipes are: account-insights, activate-campaign, async-insights-report, audit-account, campaign-insights, create-experiment, create-rule, create-carousel-creative, get-campaign, get-dashboard, get-leads, list-ads, list-adsets, list-campaigns, list-experiments, list-lead-forms, list-rules, pause-campaign, plan-budget, policy-check, rejected-ad-fix, search-ad-library, search-targeting, status, update-budget, and upload-ad-image.
 
 Budget changes are supported by `update-budget` and remain subject to the write switch and configured budget cap. Campaign activation, campaign pausing, and rule creation also require their handler's exact confirmation phrase. Other writes still require the write switch. Never activate or pause from an implied preference, an earlier approval, installation, validation, or a reporting request.
 
 Before an approved campaign activation or pause, identify the exact campaign by name and ID, state the requested new status, explain the immediate effect, and obtain the account owner's explicit approval for that exact action in the current request. If campaign identity, current status, account, or approval is unclear, stop and ask. After an approved mutation, read the returned campaign state and report what the API confirmed.
+
+## Meta policy check
+
+Before creating any creative or ad, run `policy check` on the text (headline, primary text, description, button, image text, link). The same check runs on its own inside `creatives create`, `creatives carousel`, `ads create` and `draft-campaign`, dry runs included. A BLOCK means rewrite the text using the suggested rewrite; never pass `--policy-override` without the account owner's own reason, and say that the override is written to the audit log. A WARN is a judgement call: explain it and let the owner decide. When Meta rejects an ad, use `rejected-ad-fix` with Meta's rejection text or the ad id. The rules live in `policies/rules.json` and the plain-language guide in `policies/meta-advertising-standards.md`; `doctor` warns when that guide is more than 90 days old.
 
 ## Carousel creative
 
